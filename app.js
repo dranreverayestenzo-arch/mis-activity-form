@@ -382,35 +382,19 @@ function renderRecords(){
     header.textContent = key==='Unknown'?'Unknown Date':monthLabel(key)+' ('+groups[key].length+')';
     container.appendChild(header);
     groups[key].forEach(a=>{
-      const stageObj=STAGES.find(s=>s.id===a.stage);
-      const card=document.createElement('div');
-      card.className='detail-section';
-      card.style.marginBottom='16px';
-      card.innerHTML=`
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-          <h3 style="margin:0;">${escapeHtml(a.nameOfActivity)}</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <span class="badge badge-status ${a.status==='Completed'?'completed':''}">${escapeHtml(a.status)}</span>
-            <button class="btn ghost small" data-print="${a.id}">Print Record</button>
-          </div>
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;background:var(--surface);';
+      row.innerHTML=`
+        <div>
+          <div style="font-weight:600;color:var(--text);">${escapeHtml(a.nameOfActivity)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${formatDate(a.dateOfActivity)}</div>
         </div>
-        <div class="detail-row"><span class="k">Date of Application</span><span class="v">${formatDate(a.dateOfApplication)}</span></div>
-        <div class="detail-row"><span class="k">Date of Activity</span><span class="v">${formatDate(a.dateOfActivity)} ${a.timeStart?'at '+a.timeStart+(a.timeEnd?' - '+a.timeEnd:''):''}</span></div>
-        <div class="detail-row"><span class="k">Organizer / Class</span><span class="v">${escapeHtml(a.organizer)}</span></div>
-        <div class="detail-row"><span class="k">Venue</span><span class="v">${escapeHtml(a.venue)}</span></div>
-        <div class="detail-row"><span class="k">Start Time</span><span class="v">${a.timeStart||'—'}</span></div>
-        <div class="detail-row"><span class="k">End Time</span><span class="v">${a.timeEnd||'—'}</span></div>
-        <div class="detail-row"><span class="k">Requested by</span><span class="v">${escapeHtml(a.requestedBy||'—')}</span></div>
-        <div class="detail-row"><span class="k">Noted by</span><span class="v">${escapeHtml(a.notedBy||'—')}</span></div>
-        <div class="detail-row"><span class="k">Objectives</span><span class="v">${escapeHtml(a.objectives)}</span></div>
-        <div class="detail-row"><span class="k">Compliance Review</span><span class="v">${a.compliance? (escapeHtml(a.compliance.recommendation||'—') + (a.compliance.reviewer?' by '+escapeHtml(a.compliance.reviewer):'')) : '—'}</span></div>
-        <div class="detail-row"><span class="k">Event Status</span><span class="v">${escapeHtml(a.status)}${a.statusNote?' — '+escapeHtml(a.statusNote):''}</span></div>
-        <div class="detail-row"><span class="k">Equipment Borrowed</span><span class="v">${(a.equipment||[]).length? a.equipment.map(e=>escapeHtml(e.item)+' (x'+e.qty+')').join(', ') : '—'}</span></div>
+        <button class="btn ghost small" data-view="${a.id}">View</button>
       `;
-      container.appendChild(card);
+      container.appendChild(row);
     });
   });
-  container.querySelectorAll('[data-print]').forEach(b=>b.addEventListener('click',()=>printRecord(b.dataset.print)));
+  container.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>printRecord(b.dataset.view)));
 }
 
 function printRecord(id){
