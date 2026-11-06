@@ -176,9 +176,10 @@ function renderFormEquip(){
   tbody.innerHTML='';
   state.formEquipment.forEach((e,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${escapeHtml(e.borrowedBy)}</td><td>${formatDate(e.dateBorrowed)}</td><td>${e.returned?'Yes':'No'}</td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
+    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${escapeHtml(e.borrowedBy)}</td><td>${formatDate(e.dateBorrowed)}</td><td><input type="checkbox" ${e.returned?'checked':''} data-ret="${i}" /></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
     tbody.appendChild(tr);
   });
+  tbody.querySelectorAll('[data-ret]').forEach(cb=>cb.addEventListener('change',()=>{ state.formEquipment[+cb.dataset.ret].returned=cb.checked; }));
   tbody.querySelectorAll('[data-feq]').forEach(b=>b.addEventListener('click',()=>{
     state.formEquipment.splice(+b.dataset.feq,1); renderFormEquip();
   }));
