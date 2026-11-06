@@ -176,10 +176,14 @@ function renderFormEquip(){
   tbody.innerHTML='';
   state.formEquipment.forEach((e,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${escapeHtml(e.borrowedBy)}</td><td>${formatDate(e.dateBorrowed)}</td><td><input type="checkbox" ${e.returned?'checked':''} data-ret="${i}" /></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
+    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${escapeHtml(e.borrowedBy)}</td><td>${formatDate(e.dateBorrowed)}</td><td><button type="button" class="btn ghost small" data-ret="${i}" style="padding:4px 8px;">${e.returned?'Returned':'Not returned'}</button></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
     tbody.appendChild(tr);
   });
-  tbody.querySelectorAll('[data-ret]').forEach(cb=>cb.addEventListener('change',()=>{ state.formEquipment[+cb.dataset.ret].returned=cb.checked; }));
+  tbody.querySelectorAll('[data-ret]').forEach(btn=>btn.addEventListener('click',()=>{
+    const i=+btn.dataset.ret;
+    state.formEquipment[i].returned = !state.formEquipment[i].returned;
+    btn.textContent = state.formEquipment[i].returned ? 'Returned' : 'Not returned';
+  }));
   tbody.querySelectorAll('[data-feq]').forEach(b=>b.addEventListener('click',()=>{
     state.formEquipment.splice(+b.dataset.feq,1); renderFormEquip();
   }));
