@@ -290,7 +290,10 @@ function renderDetail(a){
   });
   stepperHtml+='</div>';
 
-  let html = `<h2 style="font-family:'Playfair Display',serif;color:var(--maroon);font-size:24px;margin-bottom:4px;">${escapeHtml(a.nameOfActivity)}</h2>
+  let html = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:4px;">
+    <h2 style="font-family:'Playfair Display',serif;color:var(--maroon);font-size:24px;margin:0;">${escapeHtml(a.nameOfActivity)}</h2>
+    <span class="badge badge-status ${a.status==='Completed'?'completed':''}" style="margin-top:6px;">${escapeHtml(a.status)}</span>
+  </div>
   ${stepperHtml}
   <div class="detail-section">
     <h3>Application Details</h3>
@@ -310,6 +313,9 @@ function renderDetail(a){
     <div class="detail-row"><span class="k">Compliance Notes</span><span class="v">${escapeHtml(a.compliance?.notes||'—')}</span></div>
     <div class="detail-row"><span class="k">Event Status</span><span class="v">${escapeHtml(a.status)}${a.statusNote?' — '+escapeHtml(a.statusNote):''}</span></div>
     <div class="detail-row"><span class="k">Equipment Borrowed</span><span class="v">${(a.equipment||[]).length? a.equipment.map(e=>escapeHtml(e.item)+' (x'+e.qty+')'+(e.returned?' ✔':'')).join(', ') : '—'}</span></div>
+  </div>
+  <div style="text-align:right;margin-top:14px;">
+    <button class="btn primary small" onclick="printRecord('${a.id}')">Print Record</button>
   </div>`;
 
 
@@ -394,7 +400,7 @@ function renderRecords(){
       container.appendChild(row);
     });
   });
-  container.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>printRecord(b.dataset.view)));
+  container.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>openDetail(b.dataset.view)));
 }
 
 function printRecord(id){
