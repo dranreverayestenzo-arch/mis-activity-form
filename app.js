@@ -282,7 +282,7 @@ function editActivity(id){
   state.formEquipment=[...(a.equipment||[])];
   state.formFile=null;
   const hc=$('#hardCopy'); if(hc) hc.value='';
-  const hp=$('#hardCopyPreview'); if(hp) hp.textContent = a.hardCopyUrl ? ('Current: '+a.hardCopyUrl) : '';
+  const hp=$('#hardCopyPreview'); if(hp) hp.textContent = a.hardCopyUrl ? 'File already attached' : '';
   renderFormEquip();
   $('#objectives').value=a.objectives;
   $('#charCount').textContent=a.objectives.length;
@@ -342,7 +342,7 @@ function renderDetail(a){
     <div class="detail-row"><span class="k">Recommendation</span><span class="v">${escapeHtml(a.compliance?.recommendation||'—')}</span></div>
     <div class="detail-row"><span class="k">Compliance Notes</span><span class="v">${escapeHtml(a.compliance?.notes||'—')}</span></div>
     <div class="detail-row"><span class="k">Event Status</span><span class="v">${escapeHtml(a.status)}${a.statusNote?' — '+escapeHtml(a.statusNote):''}</span></div>
-    ${a.hardCopyUrl? `<div class="detail-row"><span class="k">Hard Copy</span><span class="v"><a href="${a.hardCopyUrl}" target="_blank" rel="noopener">View uploaded file</a></span></div>` : ''}
+    ${a.hardCopyUrl? `<div class="detail-row"><span class="k">Hard Copy</span><span class="v"><a class="btn primary small" href="${a.hardCopyUrl}" target="_blank" rel="noopener" style="text-decoration:none;">View Form</a></span></div>` : ''}
     <div class="detail-row"><span class="k">Equipment Borrowed</span><span class="v">${(a.equipment||[]).length? a.equipment.map(e=>escapeHtml(e.item)+' (x'+e.qty+')'+(e.returned?' ✔':'')).join(', ') : '—'}</span></div>
   </div>
   <div style="text-align:right;margin-top:14px;">
