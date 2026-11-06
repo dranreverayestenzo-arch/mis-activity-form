@@ -497,7 +497,7 @@ function seed(){
   save();
   localStorage.setItem('seedVersion', SEED_VERSION);
 }
-async function initApp(){ await load(); seed(); renderDashboard(); showView('dashboard'); }
+async function initApp(){ await load(); renderDashboard(); showView('dashboard'); }
 const loginScreen = $('#loginScreen');
 const appArea = $('#appArea');
 function showApp(){ loginScreen.style.display='none'; appArea.style.display='block'; if(!window._inited){ window._inited=true; initApp(); } }
