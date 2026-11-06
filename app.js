@@ -15,6 +15,7 @@ const state = {
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
+  formFile: null,
 };
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -25,7 +26,7 @@ async function load() {
     try {
       const { data, error } = await supabaseClient.from('activities').select('*').order('createdAt', { ascending: false });
       if (error) throw error;
-      state.activities = (data || []).map(a => ({ ...a, status: a.status || 'Upcoming', timeStart: a.timeStart || a.time || '', timeEnd: a.timeEnd || '', stage: 1, compliance: a.compliance || null, equipment: a.equipment || [] }));
+      state.activities = (data || []).map(a => ({ ...a, status: a.status || 'Upcoming', timeStart: a.timeStart || a.time || '', timeEnd: a.timeEnd || '', stage: 1, compliance: a.compliance || null, equipment: a.equipment || [], hardCopyUrl: a.hardCopyUrl || '' }));
       return;
     } catch (e) { console.error(e); }
   }
@@ -67,6 +68,12 @@ $$('.nav-btn, [data-view]').forEach(el=>{
 });
 
 $('#objectives').addEventListener('input',(e)=>{ $('#charCount').textContent=e.target.value.length; });
+$('#hardCopy').addEventListener('change',(e)=>{
+  const f=e.target.files?.[0]||null;
+  state.formFile=f;
+  const hp=$('#hardCopyPreview');
+  if(hp) hp.textContent = f ? ('Selected: '+f.name) : '';
+});
 
 function validateForm(){
   let ok=true;
@@ -101,6 +108,17 @@ $('#activityForm').addEventListener('submit', async (e)=>{
 
   const id = $('#activityId').value || uid();
   const existing = state.activities.find(a=>a.id===id);
+  let hardCopyUrl = existing?.hardCopyUrl || '';
+  const file = state.formFile;
+  if (file && supabaseClient) {
+    try {
+      const path = id + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const { error: upErr } = await supabaseClient.storage.from('hard-copies').upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabaseClient.storage.from('hard-copies').getPublicUrl(path);
+      hardCopyUrl = pub.publicUrl;
+    } catch (e) { console.error(e); toast('Hard copy upload failed'); }
+  }
   const activity = {
     id,
     dateOfApplication: $('#dateOfApplication').value,
@@ -125,6 +143,7 @@ $('#activityForm').addEventListener('submit', async (e)=>{
       date: new Date().toISOString(),
     },
     equipment: state.formEquipment.length ? [...state.formEquipment] : (existing?.equipment || []),
+    hardCopyUrl,
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -142,6 +161,9 @@ function resetForm(){
   $('#charCount').textContent='0';
   $('#status').value='Upcoming';
   state.formEquipment=[];
+  state.formFile=null;
+  const hc=$('#hardCopy'); if(hc) hc.value='';
+  const hp=$('#hardCopyPreview'); if(hp) hp.textContent='';
   renderFormEquip();
   $$('.error').forEach(e=>e.textContent='');
 }
@@ -253,6 +275,9 @@ function editActivity(id){
   $('#recommendation').value=a.compliance?.recommendation||'';
   $('#compNotes').value=a.compliance?.notes||'';
   state.formEquipment=[...(a.equipment||[])];
+  state.formFile=null;
+  const hc=$('#hardCopy'); if(hc) hc.value='';
+  const hp=$('#hardCopyPreview'); if(hp) hp.textContent = a.hardCopyUrl ? ('Current: '+a.hardCopyUrl) : '';
   renderFormEquip();
   $('#objectives').value=a.objectives;
   $('#charCount').textContent=a.objectives.length;
@@ -312,6 +337,7 @@ function renderDetail(a){
     <div class="detail-row"><span class="k">Recommendation</span><span class="v">${escapeHtml(a.compliance?.recommendation||'—')}</span></div>
     <div class="detail-row"><span class="k">Compliance Notes</span><span class="v">${escapeHtml(a.compliance?.notes||'—')}</span></div>
     <div class="detail-row"><span class="k">Event Status</span><span class="v">${escapeHtml(a.status)}${a.statusNote?' — '+escapeHtml(a.statusNote):''}</span></div>
+    ${a.hardCopyUrl? `<div class="detail-row"><span class="k">Hard Copy</span><span class="v"><a href="${a.hardCopyUrl}" target="_blank" rel="noopener">View uploaded file</a></span></div>` : ''}
     <div class="detail-row"><span class="k">Equipment Borrowed</span><span class="v">${(a.equipment||[]).length? a.equipment.map(e=>escapeHtml(e.item)+' (x'+e.qty+')'+(e.returned?' ✔':'')).join(', ') : '—'}</span></div>
   </div>
   <div style="text-align:right;margin-top:14px;">
