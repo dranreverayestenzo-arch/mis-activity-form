@@ -497,7 +497,7 @@ function seed(){
   save();
   localStorage.setItem('seedVersion', SEED_VERSION);
 }
-async function initApp(){ await load(); seed(); renderDashboard(); showView('dashboard'); }
+async function initApp(){ await load(); renderDashboard(); showView('dashboard'); }
 const loginScreen = $('#loginScreen');
 const appArea = $('#appArea');
 function showApp(){ loginScreen.style.display='none'; appArea.style.display='block'; if(!window._inited){ window._inited=true; initApp(); } }
@@ -506,7 +506,7 @@ $('#loginForm').addEventListener('submit', e => {
   e.preventDefault();
   const u = $('#loginUser').value.trim();
   const p = $('#loginPass').value;
-  if (u === 'sysad' && p === 'eXecute022711') {
+  if (u === 'rebby' && p === '10152004') {
     sessionStorage.setItem('loggedIn','1');
     showApp();
   } else {
