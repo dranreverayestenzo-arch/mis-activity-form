@@ -683,29 +683,40 @@ function showArchiveModal(idx){
   const overlay = document.createElement('div');
   overlay.id = 'archiveModal';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
-  const rows = (rec.vouchers||[]).map(v=>`<tr data-idno="${escapeHtml((v.idNo||'').toLowerCase())}">
-    <td>${escapeHtml(v.idNo)}</td>
-    <td>${escapeHtml(v.name)}</td>
-    <td>${escapeHtml(v.voucher)}</td>
-    <td>${escapeHtml(v.dept||'')}</td>
-    <td>${escapeHtml(v.course)}</td>
-    <td>${formatDate(v.date)}</td>
-    <td style="white-space:nowrap;">
+  const rows = (rec.vouchers||[]).map(v=>`<tr data-idno="${escapeHtml((v.idNo||'').toLowerCase())}" style="border-bottom:1px solid var(--border,#eee);">
+    <td style="padding:10px 12px;">${escapeHtml(v.idNo)}</td>
+    <td style="padding:10px 12px;">${escapeHtml(v.name)}</td>
+    <td style="padding:10px 12px;">${escapeHtml(v.voucher)}</td>
+    <td style="padding:10px 12px;">${escapeHtml(v.dept||'')}</td>
+    <td style="padding:10px 12px;">${escapeHtml(v.course)}</td>
+    <td style="padding:10px 12px;">${formatDate(v.date)}</td>
+    <td style="padding:10px 12px;white-space:nowrap;">
       <button class="btn primary small" data-aedit="${v.id}">Edit</button>
       <button class="btn ghost small" data-adel="${v.id}">Delete</button>
     </td>
   </tr>`).join('');
-  overlay.innerHTML = `<div style="background:var(--surface,#fff);border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3);">
+  overlay.innerHTML = `<div style="background:var(--surface,#fff);border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-family:inherit;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <h2 style="margin:0;">${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</h2>
+      <h2 style="margin:0;color:var(--maroon,#800000);font-size:20px;">${escapeHtml(rec.schoolYear)} — WIFI VOUCHERS</h2>
       <button class="btn ghost small" id="closeArchiveModal">Close</button>
     </div>
     <div class="toolbar" style="margin-bottom:12px;">
       <div class="search-box">
-        <input type="text" id="archiveSearch" placeholder="Search ID number..." />
+        <input type="text" id="archiveSearch" placeholder="Search ID number..." style="padding:8px 12px;border:1px solid var(--border,#ccc);border-radius:6px;font-size:13px;" />
       </div>
     </div>
-    <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th style="width:160px;"></th></tr></thead><tbody id="archiveTableBody">${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No vouchers.</td></tr>'}</tbody></table>
+    <table style="width:100%;border-collapse:collapse;background:var(--surface,#fff);border-radius:8px;overflow:hidden;font-size:13px;">
+      <thead><tr style="background:var(--maroon,#800000);color:#fff;">
+        <th style="padding:10px 12px;text-align:left;">ID No.</th>
+        <th style="padding:10px 12px;text-align:left;">Name</th>
+        <th style="padding:10px 12px;text-align:left;">Voucher Code</th>
+        <th style="padding:10px 12px;text-align:left;">Department</th>
+        <th style="padding:10px 12px;text-align:left;">Course</th>
+        <th style="padding:10px 12px;text-align:left;">Date</th>
+        <th style="padding:10px 12px;text-align:left;width:160px;"></th>
+      </tr></thead>
+      <tbody id="archiveTableBody">${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:12px;">No vouchers.</td></tr>'}</tbody>
+    </table>
   </div>`;
   document.body.appendChild(overlay);
   $('#archiveSearch')?.addEventListener('input', (e)=>{
