@@ -707,7 +707,7 @@ function renderSchoolYearRecords(){
 
 function viewSchoolYear(idx){
   const rec = state.schoolYearRecords[idx]; if(!rec) return;
-  const url = window.location.href.split('?')[0] + '?archive=' + encodeURIComponent(rec.schoolYear);
+  const url = window.location.href.split('?')[0] + '#archive=' + encodeURIComponent(rec.schoolYear);
   window.open(url, '_blank');
 }
 
@@ -825,7 +825,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   toast(editingId ? 'Voucher updated' : 'Voucher saved');
   renderWifi();
 });
-async function initApp(){ await load(); const params = new URLSearchParams(window.location.search); state.archiveView = params.get('archive'); renderDashboard(); updateWifiTitles(); if(state.archiveView){ showView('wifirecords'); } else { showView('dashboard'); } updateNotifBadge(); scheduleNotifications(); }
+async function initApp(){ await load(); let params = new URLSearchParams(window.location.search); if(!params.get('archive') && window.location.hash){ params = new URLSearchParams(window.location.hash.replace(/^#/,'')); } state.archiveView = params.get('archive'); renderDashboard(); updateWifiTitles(); if(state.archiveView){ showView('wifirecords'); } else { showView('dashboard'); } updateNotifBadge(); scheduleNotifications(); }
 
 function scheduleNotifications(){
   if(!('Notification' in window)) return;
