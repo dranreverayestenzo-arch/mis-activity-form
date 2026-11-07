@@ -88,7 +88,8 @@ function showView(name){
   if(name==='dashboard') renderDashboard();
   if(name==='list') renderList();
   if(name==='records') renderRecords();
-  if(name==='wifi'){ populateWifiCourses(); renderWifi(); }
+  if(name==='wifi'){ populateWifiCourses(); }
+  if(name==='wifirecords'){ renderWifi(); }
 }
 $$('.nav-btn, [data-view]').forEach(el=>{
   el.addEventListener('click',()=>{ const v=el.getAttribute('data-view'); if(v) showView(v); });
@@ -604,7 +605,7 @@ function populateWifiCourses(){
 $('#wDept')?.addEventListener('change', populateWifiCourses);
 
 function renderWifi(){
-  const container=$('#wifiList'); if(!container) return;
+  const container=$('#wifiRecordsList') || $('#wifiList'); if(!container) return;
   const list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
   let html='<table style="width:100%;border-collapse:collapse;"><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Course</th><th>Date</th><th></th></tr></thead><tbody>';
