@@ -708,7 +708,7 @@ function renderSchoolYearRecords(){
 function viewSchoolYear(idx){
   const rec = state.schoolYearRecords[idx]; if(!rec) return;
   const url = window.location.href.split(/[?#]/)[0] + '#archive=' + encodeURIComponent(rec.schoolYear);
-  window.open(url, '_blank');
+  window.open(url, 'archivePopup', 'width=900,height=700,resizable=yes,scrollbars=yes');
 }
 
 $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
