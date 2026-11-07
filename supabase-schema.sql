@@ -53,3 +53,28 @@ create policy "anon upload hard copies" on storage.objects for insert
 drop policy if exists "anon read hard copies" on storage.objects;
 create policy "anon read hard copies" on storage.objects for select
   using (bucket_id = 'hard-copies');
+
+-- 3) Wifi vouchers
+create table if not exists public.wifi_vouchers (
+  id text primary key,
+  "idNo" text not null,
+  name text,
+  voucher text,
+  dept text,
+  course text,
+  date date
+);
+
+alter table public.wifi_vouchers enable row level security;
+
+drop policy if exists "anon read wifi_vouchers" on public.wifi_vouchers;
+create policy "anon read wifi_vouchers" on public.wifi_vouchers for select using (true);
+
+drop policy if exists "anon insert wifi_vouchers" on public.wifi_vouchers;
+create policy "anon insert wifi_vouchers" on public.wifi_vouchers for insert with check (true);
+
+drop policy if exists "anon update wifi_vouchers" on public.wifi_vouchers;
+create policy "anon update wifi_vouchers" on public.wifi_vouchers for update using (true) with check (true);
+
+drop policy if exists "anon delete wifi_vouchers" on public.wifi_vouchers;
+create policy "anon delete wifi_vouchers" on public.wifi_vouchers for delete using (true);
