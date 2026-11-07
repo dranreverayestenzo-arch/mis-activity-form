@@ -106,7 +106,8 @@ function showView(name){
   if(name==='list') renderList();
   if(name==='records') renderRecords();
   if(name==='wifi'){ populateWifiCourses(); updateWifiTitles(); }
-  if(name==='wifirecords'){ renderWifi(); renderSchoolYearRecords(); updateWifiTitles(); }
+  if(name==='wifirecords'){ renderWifi(); updateWifiTitles(); }
+  if(name==='schoolyears'){ renderSchoolYearRecords(); }
 }
 $$('.nav-btn, [data-view]').forEach(el=>{
   el.addEventListener('click',()=>{ const v=el.getAttribute('data-view'); if(v) showView(v); });

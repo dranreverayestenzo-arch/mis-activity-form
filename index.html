@@ -52,6 +52,7 @@
       <button class="nav-btn" data-view="records">Records</button>
       <button class="nav-btn" data-view="wifi">Wifi Vouchers</button>
       <button class="nav-btn" data-view="wifirecords">Voucher Records</button>
+      <button class="nav-btn" data-view="schoolyears">School Year Records</button>
     </nav>
     <button class="btn ghost small" id="logoutBtn" style="padding:8px 12px;">Logout</button>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -289,6 +290,7 @@
           <input type="text" id="wifiSearch" placeholder="Search ID number..." />
         </div>
         <div class="filters">
+          <button class="btn primary small" id="newSchoolYearBtn">New School Year</button>
           <select id="wifiDeptFilter">
             <option value="">All Departments</option>
             <option value="CCS">CCS</option>
@@ -304,10 +306,13 @@
         </div>
       </div>
       <div id="wifiRecordsList"></div>
-      <div style="margin-top:16px;">
-        <button class="btn primary small" id="newSchoolYearBtn">New School Year</button>
+    </section>
+    <!-- School Year Records -->
+    <section class="view" id="view-schoolyears">
+      <div class="hero">
+        <h1>School Year Records</h1>
+        <p>Archived voucher records by school year.</p>
       </div>
-      <h2 style="margin-top:24px;">School Year Records</h2>
       <div id="schoolYearRecordsList"></div>
     </section>
   </main>
