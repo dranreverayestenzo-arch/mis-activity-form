@@ -639,8 +639,12 @@ function renderWifi(){
   html+='</tbody></table>';
   container.innerHTML=html;
   container.querySelectorAll('[data-wdel]').forEach(b=>b.addEventListener('click',()=>{
-    state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==b.dataset.wdel);
+    const id=b.dataset.wdel;
+    state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==id);
     saveWifi();
+    if (supabaseClient) {
+      supabaseClient.from('wifi_vouchers').delete().eq('id', id).then(({error})=>{ if(error) console.error(error); });
+    }
     renderWifi();
   }));
 }
