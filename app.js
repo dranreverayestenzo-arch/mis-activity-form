@@ -817,6 +817,26 @@ function viewSchoolYear(idx){
   window.open(url, 'archivePopup', 'width=900,height=700,resizable=yes,scrollbars=yes');
 }
 
+$('#loadSampleArchiveBtn')?.addEventListener('click', ()=>{
+  const vouchers = [];
+  for(let i=1;i<=20;i++){
+    vouchers.push({
+      id: 'sample_'+i+'_'+Date.now(),
+      idNo: '2025-'+String(i).padStart(5,'0'),
+      name: 'Sample Student '+i,
+      voucher: 'VOUCHER'+i,
+      dept: i%2===0?'CCS':'COE',
+      course: i%2===0?'BS-IT':'BS-CE',
+      date: '2026-11-07',
+      schoolYear: '2025-2026'
+    });
+  }
+  state.schoolYearRecords.unshift({ schoolYear: '2025-2026', vouchers });
+  saveSyRecords();
+  renderSchoolYearRecords();
+  toast('Sample archive loaded');
+});
+
 $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
   if(!confirm('Start a new school year? Current vouchers will be archived.')) return;
   const input = prompt('Enter new school year (e.g. 2028-2029):', state.currentSchoolYear);
