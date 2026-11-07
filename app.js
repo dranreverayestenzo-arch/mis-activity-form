@@ -868,6 +868,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
       if(idx>=0) rec.vouchers[idx] = v; else (rec.vouchers||[]).unshift(v);
       saveSyRecords();
     }
+    state.archiveView = null;
   } else if(editingId){
     const idx = state.wifiVouchers.findIndex(x=>x.id===editingId);
     if(idx>=0) state.wifiVouchers[idx] = v; else state.wifiVouchers.unshift(v);
