@@ -800,11 +800,11 @@ $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
   state.schoolYearRecords.unshift(archived);
   state.wifiVouchers = [];
   state.currentSchoolYear = input.trim();
+  state.archiveView = null;
   saveWifi();
   saveSyRecords();
-  renderWifi();
+  showView('wifirecords');
   renderSchoolYearRecords();
-  updateWifiTitles();
   toast('New school year started: ' + state.currentSchoolYear);
 });
 
