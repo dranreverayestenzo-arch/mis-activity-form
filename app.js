@@ -647,7 +647,7 @@ $('#wIdNo')?.addEventListener('input', ()=>{
   if(!msg) return;
   const existing = idNo ? activeVoucherForId(idNo) : null;
   if(existing){
-    msg.textContent = 'This ID number still has an active voucher (expires ' + new Date(new Date(existing.date).getTime()+150*24*60*60*1000).toLocaleDateString() + ').';
+    msg.textContent = 'VOUCHER ALREADY OBTAIN';
     msg.style.color = '#cf222e';
   } else {
     msg.textContent = '';
@@ -668,7 +668,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   const existing = activeVoucherForId(v.idNo);
   if(existing){
     const msg=$('#wIdMsg');
-    if(msg){ msg.textContent='This ID number still has an active voucher. New voucher cannot be added until it expires.'; msg.style.color='#cf222e'; }
+    if(msg){ msg.textContent='VOUCHER ALREADY OBTAIN'; msg.style.color='#cf222e'; }
     toast('Active voucher exists for this ID');
     return;
   }
