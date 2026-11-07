@@ -16,6 +16,7 @@ const state = {
   wifiEditingId: null,
   currentSchoolYear: localStorage.getItem('currentSchoolYear') || '2027-2028',
   schoolYearRecords: JSON.parse(localStorage.getItem('schoolYearRecords') || '[]'),
+  archiveView: null,
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
@@ -626,7 +627,12 @@ function renderWifi(){
   const container=$('#wifiRecordsList') || $('#wifiList'); if(!container) return;
   const q = ($('#wifiSearch')?.value || '').trim().toLowerCase();
   const dept = ($('#wifiDeptFilter')?.value || '').trim();
-  let list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let source = state.wifiVouchers;
+  if(state.archiveView){
+    const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+    source = rec ? (rec.vouchers||[]) : [];
+  }
+  let list=[...source].sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(q) list=list.filter(v=>(v.idNo||'').toLowerCase().includes(q));
   if(dept) list=list.filter(v=>v.dept===dept);
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
@@ -655,10 +661,15 @@ function renderWifi(){
   }));
   container.querySelectorAll('[data-wdel]').forEach(b=>b.addEventListener('click',()=>{
     const id=b.dataset.wdel;
-    state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==id);
-    saveWifi();
-    if (supabaseClient) {
-      supabaseClient.from('wifi_vouchers').delete().eq('id', id).then(({error})=>{ if(error) console.error(error); });
+    if(state.archiveView){
+      const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+      if(rec){ rec.vouchers = (rec.vouchers||[]).filter(v=>v.id!==id); saveSyRecords(); }
+    } else {
+      state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==id);
+      saveWifi();
+      if (supabaseClient) {
+        supabaseClient.from('wifi_vouchers').delete().eq('id', id).then(({error})=>{ if(error) console.error(error); });
+      }
     }
     renderWifi();
   }));
@@ -694,27 +705,10 @@ function renderSchoolYearRecords(){
   }));
 }
 
-async function viewSchoolYear(idx){
+function viewSchoolYear(idx){
   const rec = state.schoolYearRecords[idx]; if(!rec) return;
-  const w = window.open('', '_blank');
-  if(!w) { toast('Popup blocked'); return; }
-  const cssUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/,'') + 'styles.css';
-  let rows = (rec.vouchers||[]).map(v=>`<tr>
-    <td>${escapeHtml(v.idNo)}</td>
-    <td>${escapeHtml(v.name)}</td>
-    <td>${escapeHtml(v.voucher)}</td>
-    <td>${escapeHtml(v.dept||'')}</td>
-    <td>${escapeHtml(v.course)}</td>
-    <td>${formatDate(v.date)}</td>
-  </tr>`).join('');
-  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(rec.schoolYear)}</title>
-  <link rel="stylesheet" href="${cssUrl}">
-  <style>body{padding:20px;} .hero h1{color:var(--maroon,#800000);} table{width:100%;border-collapse:collapse;background:var(--surface,#fff);} th,td{padding:10px 12px;border-bottom:1px solid var(--border,#ddd);font-size:13px;} th{background:var(--maroon,#800000);color:#fff;}</style>
-  </head><body>
-  <div class="hero"><h1>WIFI VOUCHERS SY ${escapeHtml(rec.schoolYear)}</h1><p>Complete record of wifi voucher assignments.</p></div>
-  <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
-  </body></html>`);
-  w.document.close();
+  const url = window.location.pathname + '?archive=' + encodeURIComponent(rec.schoolYear);
+  window.open(url, '_blank');
 }
 
 $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
@@ -734,8 +728,9 @@ $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
 });
 
 function updateWifiTitles(){
+  const sy = state.archiveView || state.currentSchoolYear;
   document.querySelectorAll('#view-wifi .hero h1, #view-wifirecords .hero h1').forEach(h=>{
-    if(h.textContent.includes('WIFI VOUCHERS')) h.textContent = 'WIFI VOUCHERS SY ' + state.currentSchoolYear + (h.textContent.includes('Records') ? ' - Records' : '');
+    if(h.textContent.includes('WIFI VOUCHERS')) h.textContent = 'WIFI VOUCHERS SY ' + sy + (h.textContent.includes('Records') ? ' - Records' : '');
   });
 }
 function isVoucherActive(v){
@@ -759,7 +754,14 @@ $('#wIdNo')?.addEventListener('input', ()=>{
   }
 });
 function editWifi(id){
-  const v = state.wifiVouchers.find(x=>x.id===id); if(!v) return;
+  let v = null;
+  if(state.archiveView){
+    const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+    v = (rec?.vouchers||[]).find(x=>x.id===id);
+  } else {
+    v = state.wifiVouchers.find(x=>x.id===id);
+  }
+  if(!v) return;
   state.wifiEditingId = id;
   showView('wifi');
   $('#wIdNo').value = v.idNo || '';
@@ -799,13 +801,21 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
     toast('Active voucher exists for this ID');
     return;
   }
-  if(editingId){
+  if(state.archiveView){
+    if(!editingId){ toast('Cannot add in archive view'); return; }
+    const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+    if(rec){
+      const idx = (rec.vouchers||[]).findIndex(x=>x.id===editingId);
+      if(idx>=0) rec.vouchers[idx] = v; else (rec.vouchers||[]).unshift(v);
+      saveSyRecords();
+    }
+  } else if(editingId){
     const idx = state.wifiVouchers.findIndex(x=>x.id===editingId);
     if(idx>=0) state.wifiVouchers[idx] = v; else state.wifiVouchers.unshift(v);
   } else {
     state.wifiVouchers.unshift(v);
   }
-  saveWifi();
+  if(!state.archiveView) saveWifi();
   state.wifiEditingId = null;
   const btn = $('#wifiForm')?.querySelector('button[type="submit"]');
   if (btn) btn.textContent = 'Save Voucher';
@@ -815,7 +825,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   toast(editingId ? 'Voucher updated' : 'Voucher saved');
   renderWifi();
 });
-async function initApp(){ await load(); renderDashboard(); updateWifiTitles(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
+async function initApp(){ await load(); const params = new URLSearchParams(window.location.search); state.archiveView = params.get('archive'); renderDashboard(); updateWifiTitles(); if(state.archiveView){ showView('wifirecords'); } else { showView('dashboard'); } updateNotifBadge(); scheduleNotifications(); }
 
 function scheduleNotifications(){
   if(!('Notification' in window)) return;
