@@ -682,18 +682,32 @@ function renderSchoolYearRecords(){
   if(!state.schoolYearRecords.length){ container.innerHTML='<p style="color:var(--text-muted);">No school year records yet.</p>'; return; }
   let html='';
   state.schoolYearRecords.forEach((rec, idx)=>{
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
-      <span>📄 ${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</span>
-      <div style="display:flex;gap:6px;">
-        <button class="btn primary small" data-syview="${idx}">View</button>
-        <button class="btn ghost small" data-sydel="${idx}">Delete</button>
+    const rows = (rec.vouchers||[]).map(v=>`<tr>
+      <td>${escapeHtml(v.idNo)}</td>
+      <td>${escapeHtml(v.name)}</td>
+      <td>${escapeHtml(v.voucher)}</td>
+      <td>${escapeHtml(v.dept||'')}</td>
+      <td>${escapeHtml(v.course)}</td>
+      <td>${formatDate(v.date)}</td>
+    </tr>`).join('');
+    html += `<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface-2);">
+        <span>📄 ${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn primary small" data-syview="${idx}">View</button>
+          <button class="btn ghost small" data-sydel="${idx}">Delete</button>
+        </div>
+      </div>
+      <div id="sytable-${idx}" style="display:none;padding:10px;">
+        <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
       </div>
     </div>`;
   });
   container.innerHTML = html;
   container.querySelectorAll('[data-syview]').forEach(b=>b.addEventListener('click',()=>{
     const idx = parseInt(b.dataset.syview,10);
-    viewSchoolYear(idx);
+    const el = $('#sytable-' + idx);
+    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
   }));
   container.querySelectorAll('[data-sydel]').forEach(b=>b.addEventListener('click',()=>{
     const idx = parseInt(b.dataset.sydel,10);
