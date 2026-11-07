@@ -607,8 +607,10 @@ $('#wDept')?.addEventListener('change', populateWifiCourses);
 function renderWifi(){
   const container=$('#wifiRecordsList') || $('#wifiList'); if(!container) return;
   const q = ($('#wifiSearch')?.value || '').trim().toLowerCase();
+  const dept = ($('#wifiDeptFilter')?.value || '').trim();
   let list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(q) list=list.filter(v=>(v.idNo||'').toLowerCase().includes(q));
+  if(dept) list=list.filter(v=>v.dept===dept);
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
   let html='<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>';
   list.forEach(v=>{
@@ -633,6 +635,7 @@ function renderWifi(){
   }));
 }
 $('#wifiSearch')?.addEventListener('input', renderWifi);
+$('#wifiDeptFilter')?.addEventListener('change', renderWifi);
 function isVoucherActive(v){
   if(!v.date) return false;
   const diff = (Date.now() - new Date(v.date).getTime()) / (1000*60*60*24);
