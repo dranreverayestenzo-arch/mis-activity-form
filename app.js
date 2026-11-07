@@ -719,13 +719,12 @@ async function viewSchoolYear(idx){
 
 $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
   if(!confirm('Start a new school year? Current vouchers will be archived.')) return;
+  const input = prompt('Enter new school year (e.g. 2028-2029):', state.currentSchoolYear);
+  if(!input) return;
   const archived = { schoolYear: state.currentSchoolYear, vouchers: [...state.wifiVouchers] };
   state.schoolYearRecords.unshift(archived);
   state.wifiVouchers = [];
-  const parts = state.currentSchoolYear.split('-');
-  const y1 = parseInt(parts[0],10)+1;
-  const y2 = parseInt(parts[1],10)+1;
-  state.currentSchoolYear = y1 + '-' + y2;
+  state.currentSchoolYear = input.trim();
   saveWifi();
   saveSyRecords();
   renderWifi();
