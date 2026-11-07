@@ -672,7 +672,7 @@ $('#wIdNo')?.addEventListener('input', ()=>{
   if(!msg) return;
   const existing = idNo ? activeVoucherForId(idNo) : null;
   if(existing && existing.id !== state.wifiEditingId){
-    msg.textContent = 'VOUCHER ALREADY OBTAIN';
+    msg.textContent = 'VOUCHER ALREADY OBTAINED';
     msg.style.color = '#cf222e';
   } else {
     msg.textContent = '';
@@ -714,7 +714,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   const existing = activeVoucherForId(v.idNo);
   if(existing && existing.id !== v.id){
     const msg=$('#wIdMsg');
-    if(msg){ msg.textContent='VOUCHER ALREADY OBTAIN'; msg.style.color='#cf222e'; }
+    if(msg){ msg.textContent='VOUCHER ALREADY OBTAINED'; msg.style.color='#cf222e'; }
     toast('Active voucher exists for this ID');
     return;
   }
