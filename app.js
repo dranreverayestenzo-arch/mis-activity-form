@@ -14,6 +14,8 @@ const state = {
   activities: [],
   wifiVouchers: [],
   wifiEditingId: null,
+  currentSchoolYear: localStorage.getItem('currentSchoolYear') || '2027-2028',
+  schoolYearRecords: JSON.parse(localStorage.getItem('schoolYearRecords') || '[]'),
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
@@ -47,6 +49,10 @@ async function saveWifi() {
   if (supabaseClient) {
     try { await supabaseClient.from('wifi_vouchers').upsert(state.wifiVouchers, { onConflict: 'id' }); } catch (e) { console.error(e); }
   }
+}
+function saveSyRecords() {
+  localStorage.setItem('schoolYearRecords', JSON.stringify(state.schoolYearRecords));
+  localStorage.setItem('currentSchoolYear', state.currentSchoolYear);
 }
 async function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.activities));
@@ -99,8 +105,8 @@ function showView(name){
   if(name==='dashboard') renderDashboard();
   if(name==='list') renderList();
   if(name==='records') renderRecords();
-  if(name==='wifi'){ populateWifiCourses(); }
-  if(name==='wifirecords'){ renderWifi(); }
+  if(name==='wifi'){ populateWifiCourses(); updateWifiTitles(); }
+  if(name==='wifirecords'){ renderWifi(); renderSchoolYearRecords(); updateWifiTitles(); }
 }
 $$('.nav-btn, [data-view]').forEach(el=>{
   el.addEventListener('click',()=>{ const v=el.getAttribute('data-view'); if(v) showView(v); });
@@ -658,6 +664,52 @@ function renderWifi(){
 }
 $('#wifiSearch')?.addEventListener('input', renderWifi);
 $('#wifiDeptFilter')?.addEventListener('change', renderWifi);
+
+function renderSchoolYearRecords(){
+  const container = $('#schoolYearRecordsList'); if(!container) return;
+  if(!state.schoolYearRecords.length){ container.innerHTML='<p style="color:var(--text-muted);">No school year records yet.</p>'; return; }
+  let html='';
+  state.schoolYearRecords.forEach(rec=>{
+    html += `<h3>${escapeHtml(rec.schoolYear)}</h3>`;
+    if(!rec.vouchers || !rec.vouchers.length){ html += '<p style="color:var(--text-muted);">No vouchers.</p>'; return; }
+    html += '<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th></tr></thead><tbody>';
+    rec.vouchers.forEach(v=>{
+      html += `<tr>
+        <td>${escapeHtml(v.idNo)}</td>
+        <td>${escapeHtml(v.name)}</td>
+        <td>${escapeHtml(v.voucher)}</td>
+        <td>${escapeHtml(v.dept||'')}</td>
+        <td>${escapeHtml(v.course)}</td>
+        <td>${formatDate(v.date)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  });
+  container.innerHTML = html;
+}
+
+$('#newSchoolYearBtn')?.addEventListener('click', ()=>{
+  if(!confirm('Start a new school year? Current vouchers will be archived.')) return;
+  const archived = { schoolYear: state.currentSchoolYear, vouchers: [...state.wifiVouchers] };
+  state.schoolYearRecords.unshift(archived);
+  state.wifiVouchers = [];
+  const parts = state.currentSchoolYear.split('-');
+  const y1 = parseInt(parts[0],10)+1;
+  const y2 = parseInt(parts[1],10)+1;
+  state.currentSchoolYear = y1 + '-' + y2;
+  saveWifi();
+  saveSyRecords();
+  renderWifi();
+  renderSchoolYearRecords();
+  updateWifiTitles();
+  toast('New school year started: ' + state.currentSchoolYear);
+});
+
+function updateWifiTitles(){
+  document.querySelectorAll('#view-wifi .hero h1, #view-wifirecords .hero h1').forEach(h=>{
+    if(h.textContent.includes('WIFI VOUCHERS')) h.textContent = 'WIFI VOUCHERS SY ' + state.currentSchoolYear + (h.textContent.includes('Records') ? ' - Records' : '');
+  });
+}
 function isVoucherActive(v){
   if(!v.date) return false;
   const diff = (Date.now() - new Date(v.date).getTime()) / (1000*60*60*24);
@@ -709,6 +761,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
     dept: $('#wDept').value,
     course: $('#wCourse').value,
     date: $('#wDate').value,
+    schoolYear: state.currentSchoolYear,
   };
   if(!v.idNo||!v.name||!v.voucher||!v.course||!v.date){ toast('Fill all fields'); return; }
   const existing = activeVoucherForId(v.idNo);
@@ -734,7 +787,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   toast(editingId ? 'Voucher updated' : 'Voucher saved');
   renderWifi();
 });
-async function initApp(){ await load(); renderDashboard(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
+async function initApp(){ await load(); renderDashboard(); updateWifiTitles(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
 
 function scheduleNotifications(){
   if(!('Notification' in window)) return;

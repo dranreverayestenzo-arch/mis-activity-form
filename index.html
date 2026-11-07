@@ -142,34 +142,13 @@
               <span class="error" data-for="objectives"></span>
             </div>
             <div class="field full">
-              <label for="requirements">Compliance Requirements</label>
-              <textarea id="requirements" rows="3"></textarea>
-            </div>
-            <div class="field">
-              <label for="reviewer">Reviewed by</label>
-              <input type="text" id="reviewer" />
-            </div>
-            <div class="field">
-              <label for="recommendation">Recommendation</label>
-              <select id="recommendation">
-                <option value="">Recommendation</option>
-                <option value="Approve">Recommend Approval</option>
-                <option value="Reject">Reject</option>
-                <option value="Revise">Needs Revision</option>
-              </select>
-            </div>
-            <div class="field full">
-              <label for="compNotes">Compliance Notes</label>
-              <textarea id="compNotes" rows="2"></textarea>
-            </div>
-            <div class="field full">
-              <label for="hardCopy">Hard Copy Form (upload)</label>
+              <label for="hardCopy">Wifi Records - Voucher Records</label>
               <label for="hardCopy" class="btn primary small" style="cursor:pointer;display:inline-block;">Choose File</label>
               <input type="file" id="hardCopy" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none;" />
               <div id="hardCopyPreview" style="margin-top:6px;font-size:13px;color:var(--text-muted);"></div>
             </div>
             <div class="field full">
-              <label>Equipment Borrowed (Final)</label>
+              <label>Equipment Borrowed</label>
               <div class="equip-form">
                 <div><label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Item</label><input id="f_eqItem" style="width:100%;" /></div>
                 <div><label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Qty</label><input id="f_eqQty" type="number" min="1" style="width:100%;" /></div>
@@ -325,6 +304,11 @@
         </div>
       </div>
       <div id="wifiRecordsList"></div>
+      <div style="margin-top:16px;">
+        <button class="btn primary small" id="newSchoolYearBtn">New School Year</button>
+      </div>
+      <h2 style="margin-top:24px;">School Year Records</h2>
+      <div id="schoolYearRecordsList"></div>
     </section>
   </main>
 
