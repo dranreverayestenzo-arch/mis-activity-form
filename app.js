@@ -17,6 +17,7 @@ const state = {
   currentSchoolYear: localStorage.getItem('currentSchoolYear') || '2027-2028',
   schoolYearRecords: JSON.parse(localStorage.getItem('schoolYearRecords') || '[]'),
   archiveView: null,
+  wifiShowCount: 15,
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
@@ -680,21 +681,56 @@ $('#wifiDeptFilter')?.addEventListener('change', renderWifi);
 function showArchiveModal(idx){
   const rec = state.schoolYearRecords[idx]; if(!rec) return;
   const existing = $('#archiveModal'); if(existing) existing.remove();
+  let limit = 15;
   const overlay = document.createElement('div');
   overlay.id = 'archiveModal';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
-  const rows = (rec.vouchers||[]).map(v=>`<tr data-idno="${escapeHtml((v.idNo||'').toLowerCase())}" style="border-bottom:1px solid var(--border,#eee);">
-    <td style="padding:10px 12px;">${escapeHtml(v.idNo)}</td>
-    <td style="padding:10px 12px;">${escapeHtml(v.name)}</td>
-    <td style="padding:10px 12px;">${escapeHtml(v.voucher)}</td>
-    <td style="padding:10px 12px;">${escapeHtml(v.dept||'')}</td>
-    <td style="padding:10px 12px;">${escapeHtml(v.course)}</td>
-    <td style="padding:10px 12px;">${formatDate(v.date)}</td>
-    <td style="padding:10px 12px;white-space:nowrap;">
-      <button class="btn primary small" data-aedit="${v.id}">Edit</button>
-      <button class="btn ghost small" data-adel="${v.id}">Delete</button>
-    </td>
-  </tr>`).join('');
+
+  function renderBody(){
+    const vouchers = rec.vouchers||[];
+    const shown = vouchers.slice(0, limit);
+    const rows = shown.map(v=>`<tr data-idno="${escapeHtml((v.idNo||'').toLowerCase())}" style="border-bottom:1px solid var(--border,#eee);">
+      <td style="padding:10px 12px;">${escapeHtml(v.idNo)}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.name)}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.voucher)}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.dept||'')}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.course)}</td>
+      <td style="padding:10px 12px;">${formatDate(v.date)}</td>
+      <td style="padding:10px 12px;white-space:nowrap;">
+        <button class="btn primary small" data-aedit="${v.id}">Edit</button>
+        <button class="btn ghost small" data-adel="${v.id}">Delete</button>
+      </td>
+    </tr>`).join('');
+    const tbody = overlay.querySelector('#archiveTableBody');
+    if(tbody){
+      tbody.innerHTML = rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:12px;">No vouchers.</td></tr>';
+      bindRowEvents();
+    }
+    const sm = overlay.querySelector('#showMoreArchive');
+    if(sm){
+      sm.style.display = vouchers.length > limit ? 'inline-block' : 'none';
+    }
+  }
+
+  function bindRowEvents(){
+    overlay.querySelectorAll('[data-aedit]').forEach(b=>b.addEventListener('click',()=>{
+      overlay.remove();
+      state.archiveView = rec.schoolYear;
+      state.wifiEditingId = b.dataset.aedit;
+      showView('wifi');
+      editWifi(b.dataset.aedit);
+    }));
+    overlay.querySelectorAll('[data-adel]').forEach(b=>b.addEventListener('click',()=>{
+      const id = b.dataset.adel;
+      if(!confirm('Delete this voucher?')) return;
+      rec.vouchers = (rec.vouchers||[]).filter(v=>v.id!==id);
+      saveSyRecords();
+      overlay.remove();
+      showArchiveModal(idx);
+      toast('Voucher deleted');
+    }));
+  }
+
   overlay.innerHTML = `<div style="background:var(--surface,#fff);border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-family:inherit;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <h2 style="margin:0;color:var(--maroon,#800000);font-size:20px;">${escapeHtml(rec.schoolYear)} — WIFI VOUCHERS</h2>
@@ -715,10 +751,14 @@ function showArchiveModal(idx){
         <th style="padding:10px 12px;text-align:left;">Date</th>
         <th style="padding:10px 12px;text-align:left;width:160px;"></th>
       </tr></thead>
-      <tbody id="archiveTableBody">${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:12px;">No vouchers.</td></tr>'}</tbody>
+      <tbody id="archiveTableBody"></tbody>
     </table>
+    <div style="margin-top:12px;text-align:center;">
+      <button class="btn primary small" id="showMoreArchive">Show more</button>
+    </div>
   </div>`;
   document.body.appendChild(overlay);
+  renderBody();
   $('#archiveSearch')?.addEventListener('input', (e)=>{
     const q = e.target.value.trim().toLowerCase();
     overlay.querySelectorAll('#archiveTableBody tr[data-idno]').forEach(tr=>{
@@ -727,22 +767,7 @@ function showArchiveModal(idx){
   });
   $('#closeArchiveModal').addEventListener('click', ()=>overlay.remove());
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
-  overlay.querySelectorAll('[data-aedit]').forEach(b=>b.addEventListener('click',()=>{
-    overlay.remove();
-    state.archiveView = rec.schoolYear;
-    state.wifiEditingId = b.dataset.aedit;
-    showView('wifi');
-    editWifi(b.dataset.aedit);
-  }));
-  overlay.querySelectorAll('[data-adel]').forEach(b=>b.addEventListener('click',()=>{
-    const id = b.dataset.adel;
-    if(!confirm('Delete this voucher?')) return;
-    rec.vouchers = (rec.vouchers||[]).filter(v=>v.id!==id);
-    saveSyRecords();
-    overlay.remove();
-    showArchiveModal(idx);
-    toast('Voucher deleted');
-  }));
+  $('#showMoreArchive')?.addEventListener('click', ()=>{ limit += 15; renderBody(); });
 }
 
 function renderSchoolYearRecords(){
