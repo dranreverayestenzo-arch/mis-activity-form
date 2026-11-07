@@ -88,7 +88,7 @@ function showView(name){
   if(name==='dashboard') renderDashboard();
   if(name==='list') renderList();
   if(name==='records') renderRecords();
-  if(name==='wifi') renderWifi();
+  if(name==='wifi'){ populateWifiCourses(); renderWifi(); }
 }
 $$('.nav-btn, [data-view]').forEach(el=>{
   el.addEventListener('click',()=>{ const v=el.getAttribute('data-view'); if(v) showView(v); });
@@ -582,6 +582,27 @@ function seed(){
   save();
   localStorage.setItem('seedVersion', SEED_VERSION);
 }
+const WIFI_COURSES = {
+  CCS: ['BSIT','BSCS'],
+  CAS: ['AB ENGLISH','AB POLSCI','AB FILIPINO'],
+  COE: ['BSCE','BSME','BSEE'],
+  COC: ['BSCRIM'],
+  CBA: ['BSBA'],
+  CED: ['BEED','BSED','TCP'],
+  GS: ['MAED'],
+  FACULTY: ['CCS','CAS','CED','BED','ACCT','COC','REGISTRAR','LIBRARY','COC FACULTY','HR ASSOCIATES','GARDENER','MEDIA OFFICER','COE','GS'],
+  HS: ['HIGH SCHOOL'],
+};
+function populateWifiCourses(){
+  const dept = $('#wDept')?.value || 'CCS';
+  const sel = $('#wCourse'); if(!sel) return;
+  sel.innerHTML = '';
+  (WIFI_COURSES[dept]||[]).forEach(c=>{
+    const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o);
+  });
+}
+$('#wDept')?.addEventListener('change', populateWifiCourses);
+
 function renderWifi(){
   const container=$('#wifiList'); if(!container) return;
   const list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
