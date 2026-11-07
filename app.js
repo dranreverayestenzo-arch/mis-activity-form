@@ -622,7 +622,7 @@ function renderWifi(){
   if(q) list=list.filter(v=>(v.idNo||'').toLowerCase().includes(q));
   if(dept) list=list.filter(v=>v.dept===dept);
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
-  let html='<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th>Status</th><th style="width:80px;"></th></tr></thead><tbody>';
   list.forEach(v=>{
     const active = isVoucherActive(v);
     html+=`<tr>
