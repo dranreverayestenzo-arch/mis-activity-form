@@ -47,12 +47,36 @@ function uid() { return 'act_' + Date.now().toString(36) + Math.random().toStrin
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
 function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function formatDate(d){ if(!d) return ''; const dt=new Date(d); return dt.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+function formatTime(t){
+  if(!t) return '';
+  const parts = String(t).split(':');
+  if(parts.length < 2) return t;
+  let h = parseInt(parts[0],10);
+  const m = parts[1];
+  if(isNaN(h)) return t;
+  h = h % 12; if(h === 0) h = 12;
+  return h + ':' + m;
+}
+function formatTimeRange(a){
+  if(!a) return '';
+  const s = formatTime(a.timeStart || a.time);
+  const e = formatTime(a.timeEnd);
+  if(s && e) return s + ' - ' + e;
+  return s || e || '';
+}
 
 function applyTheme(){
   if(state.theme==='dark') document.documentElement.setAttribute('data-theme','dark');
   else document.documentElement.removeAttribute('data-theme');
 }
 $('#themeToggle').addEventListener('click',()=>{ state.theme = state.theme==='dark'?'light':'dark'; localStorage.setItem('theme',state.theme); applyTheme(); });
+const notifBtn=$('#notifBtn'); if(notifBtn) notifBtn.addEventListener('click',()=>openStatsModal('upcoming'));
+function updateNotifBadge(){
+  const today=new Date().toISOString().slice(0,10);
+  const count=state.activities.filter(a=>a.status==='Upcoming' && a.dateOfActivity>=today).length;
+  const badge=$('#notifBadge'); if(!badge) return;
+  badge.textContent=count; badge.style.display = count>0 ? 'inline-block' : 'none';
+}
 applyTheme();
 
 function showView(name){
@@ -136,10 +160,10 @@ $('#activityForm').addEventListener('submit', async (e)=>{
     status: $('#status').value || existing?.status || 'Upcoming',
     statusNote: existing?.statusNote || '',
     compliance: {
-      requirements: $('#requirements').value.trim(),
+      requirements: '',
       reviewer: $('#reviewer').value.trim(),
       recommendation: $('#recommendation').value,
-      notes: $('#compNotes').value.trim(),
+      notes: '',
       date: new Date().toISOString(),
     },
     equipment: state.formEquipment.length ? [...state.formEquipment] : (existing?.equipment || []),
@@ -150,6 +174,7 @@ $('#activityForm').addEventListener('submit', async (e)=>{
   if(existing){ const idx=state.activities.findIndex(a=>a.id===id); state.activities[idx]=activity; toast('Application updated'); }
   else { state.activities.unshift(activity); toast('Application submitted'); }
   await save();
+  scheduleNotifications();
   resetForm();
   btn.disabled=false; text.hidden=false; spinner.hidden=true;
   showView('list');
@@ -158,6 +183,7 @@ $('#activityForm').addEventListener('submit', async (e)=>{
 function resetForm(){
   $('#activityForm').reset();
   $('#activityId').value='';
+  $('#formTitle').textContent='Activity Application';
   $('#charCount').textContent='0';
   $('#status').value='Upcoming';
   state.formEquipment=[];
@@ -174,15 +200,18 @@ $('#newFromList').addEventListener('click',()=>{ resetForm(); showView('form'); 
 function renderFormEquip(){
   const tbody=$('#f_eqBody'); if(!tbody) return;
   tbody.innerHTML='';
+  const head = document.querySelector('.eq-returned-col');
+  if(head) head.style.display = '';
   state.formEquipment.forEach((e,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${escapeHtml(e.borrowedBy)}</td><td>${formatDate(e.dateBorrowed)}</td><td><button type="button" class="btn ghost small" data-ret="${i}" style="padding:4px 8px;">${e.returned?'Returned':'Not returned'}</button></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
+    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td><button type="button" class="btn ghost small" data-ret="${i}" style="padding:4px 8px;color:${e.returned?'#1a7f37':'#cf222e'};font-weight:600;">${e.returned?'RETURNED':'NO RETURNED'}</button></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('[data-ret]').forEach(btn=>btn.addEventListener('click',()=>{
     const i=+btn.dataset.ret;
     state.formEquipment[i].returned = !state.formEquipment[i].returned;
-    btn.textContent = state.formEquipment[i].returned ? 'Returned' : 'Not returned';
+    btn.textContent = state.formEquipment[i].returned ? 'RETURNED' : 'NO RETURNED';
+    btn.style.color = state.formEquipment[i].returned ? '#1a7f37' : '#cf222e';
   }));
   tbody.querySelectorAll('[data-feq]').forEach(b=>b.addEventListener('click',()=>{
     state.formEquipment.splice(+b.dataset.feq,1); renderFormEquip();
@@ -190,14 +219,14 @@ function renderFormEquip(){
 }
 $('#f_addEq').addEventListener('click',()=>{
   const item=$('#f_eqItem').value.trim(); const qty=parseInt($('#f_eqQty').value)||1;
-  const by=$('#f_eqBy').value.trim(); const date=$('#f_eqDate').value;
   if(!item){ toast('Enter item name'); return; }
-  state.formEquipment.push({ id:uid(), item, qty, borrowedBy:by, dateBorrowed:date, returned:false });
-  $('#f_eqItem').value=''; $('#f_eqQty').value=''; $('#f_eqBy').value=''; $('#f_eqDate').value='';
+  state.formEquipment.push({ id:uid(), item, qty, borrowedBy:'', dateBorrowed:'', returned:false });
+  $('#f_eqItem').value=''; $('#f_eqQty').value='';
   renderFormEquip();
 });
 
 function populateFilters(){}
+const statusEl=$('#status'); if(statusEl) statusEl.addEventListener('change', renderFormEquip);
 ['searchInput','filterStatus','filterDate','sortBy'].forEach(id=>{
   const el=$('#'+id); if(!el) return;
   el.addEventListener('input', renderList);
@@ -246,7 +275,7 @@ function renderList(){
         </div>
       </div>
       <div class="card-meta">
-        <span>📅 Event: ${formatDate(a.dateOfActivity)} ${a.timeStart?'⏰ '+a.timeStart+(a.timeEnd?' - '+a.timeEnd:''):''}</span>
+        <span>📅 Event: ${formatDate(a.dateOfActivity)} ${a.timeStart?'⏰ '+formatTimeRange(a):''}</span>
         <span>👤 ${escapeHtml(a.organizer)}</span>
         <span>📍 ${escapeHtml(a.venue)}</span>
         <span>📝 Applied: ${formatDate(a.dateOfApplication)}</span>
@@ -275,10 +304,8 @@ function editActivity(id){
   $('#requestedBy').value=a.requestedBy||'';
   $('#notedBy').value=a.notedBy||'';
   $('#status').value=a.status||'Upcoming';
-  $('#requirements').value=a.compliance?.requirements||'';
   $('#reviewer').value=a.compliance?.reviewer||'';
   $('#recommendation').value=a.compliance?.recommendation||'';
-  $('#compNotes').value=a.compliance?.notes||'';
   state.formEquipment=[...(a.equipment||[])];
   state.formFile=null;
   const hc=$('#hardCopy'); if(hc) hc.value='';
@@ -310,6 +337,37 @@ function openDetail(id){
 function closeDetail(){ $('#detailModal').hidden=true; state.currentDetail=null; }
 $$('[data-close]').forEach(el=>el.addEventListener('click',closeDetail));
 
+function openStatsModal(type){
+  const today=new Date().toISOString().slice(0,10);
+  let list=[...state.activities];
+  let title='Applications';
+  if(type==='total'){ title='All Applications'; }
+  else if(type==='completed'){ list=list.filter(a=>a.status==='Completed'); title='Completed Applications'; }
+  else if(type==='upcoming'){ list=list.filter(a=>a.dateOfActivity>=today); title='Upcoming Events'; }
+  else if(type==='inprogress'){ list=list.filter(a=>a.status!=='Completed'); title='In Progress'; }
+  const mc=$('#statsModalContent');
+  let html=`<h2 style="font-family:'Playfair Display',serif;color:var(--maroon);margin:0 0 12px;">${title} (${list.length})</h2>`;
+  if(list.length===0){ html+='<p style="color:var(--text-muted);">No applications found.</p>'; }
+  else {
+    html+='<div style="display:flex;flex-direction:column;gap:8px;">';
+    list.forEach(a=>{
+      html+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;" data-open="${a.id}">
+        <div>
+          <div style="font-weight:600;color:var(--text);">${escapeHtml(a.nameOfActivity)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${formatDate(a.dateOfActivity)} ${a.timeStart?'⏰ '+formatTimeRange(a):''} • ${escapeHtml(a.organizer)} • ${escapeHtml(a.status)}</div>
+        </div>
+        <span class="badge badge-status ${a.status==='Completed'?'completed':''}">${escapeHtml(a.status)}</span>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  mc.innerHTML=html;
+  mc.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closeStatsModal(); openDetail(el.dataset.open); }));
+  $('#statsModal').hidden=false;
+}
+function closeStatsModal(){ $('#statsModal').hidden=true; }
+$$('[data-close-stats]').forEach(el=>el.addEventListener('click',closeStatsModal));
+
 function renderDetail(a){
   const mc=$('#modalContent');
   const stageObj=STAGES.find(s=>s.id===a.stage);
@@ -329,21 +387,21 @@ function renderDetail(a){
     <h3>Application Details</h3>
     <div class="detail-row"><span class="k">Date of Application</span><span class="v">${formatDate(a.dateOfApplication)}</span></div>
     <div class="detail-row"><span class="k">Name of Activity</span><span class="v">${escapeHtml(a.nameOfActivity)}</span></div>
-    <div class="detail-row"><span class="k">Date of Activity</span><span class="v">${formatDate(a.dateOfActivity)} ${a.timeStart?('at '+a.timeStart+(a.timeEnd?' - '+a.timeEnd:'')):''}</span></div>
+    <div class="detail-row"><span class="k">Date of Activity</span><span class="v">${formatDate(a.dateOfActivity)}</span></div>
     <div class="detail-row"><span class="k">Organizer / Class</span><span class="v">${escapeHtml(a.organizer)}</span></div>
     <div class="detail-row"><span class="k">Venue</span><span class="v">${escapeHtml(a.venue)}</span></div>
-    <div class="detail-row"><span class="k">Start Time</span><span class="v">${a.timeStart||'—'}</span></div>
-    <div class="detail-row"><span class="k">End Time</span><span class="v">${a.timeEnd||'—'}</span></div>
+    <div class="detail-row"><span class="k">Start Time</span><span class="v">${formatTime(a.timeStart)||'—'}</span></div>
+    <div class="detail-row"><span class="k">End Time</span><span class="v">${formatTime(a.timeEnd)||'—'}</span></div>
     <div class="detail-row"><span class="k">Requested by</span><span class="v">${escapeHtml(a.requestedBy||'—')}</span></div>
     <div class="detail-row"><span class="k">Noted by</span><span class="v">${escapeHtml(a.notedBy||'—')}</span></div>
     <div class="detail-row"><span class="k">Objectives</span><span class="v">${escapeHtml(a.objectives)}</span></div>
-    <div class="detail-row"><span class="k">Compliance Requirements</span><span class="v">${escapeHtml(a.compliance?.requirements||'—')}</span></div>
+    
     <div class="detail-row"><span class="k">Reviewed by</span><span class="v">${escapeHtml(a.compliance?.reviewer||'—')}</span></div>
     <div class="detail-row"><span class="k">Recommendation</span><span class="v">${escapeHtml(a.compliance?.recommendation||'—')}</span></div>
-    <div class="detail-row"><span class="k">Compliance Notes</span><span class="v">${escapeHtml(a.compliance?.notes||'—')}</span></div>
+    
     <div class="detail-row"><span class="k">Event Status</span><span class="v">${escapeHtml(a.status)}${a.statusNote?' — '+escapeHtml(a.statusNote):''}</span></div>
     ${a.hardCopyUrl? `<div class="detail-row"><span class="k">Hard Copy</span><span class="v"><a class="btn primary small" href="${a.hardCopyUrl}" target="_blank" rel="noopener" style="text-decoration:none;">View Form</a></span></div>` : ''}
-    <div class="detail-row"><span class="k">Equipment Borrowed</span><span class="v">${(a.equipment||[]).length? a.equipment.map(e=>escapeHtml(e.item)+' (x'+e.qty+')'+(e.returned?' ✔':'')).join(', ') : '—'}</span></div>
+    <div class="detail-row"><span class="k">Equipment Borrowed</span><span class="v">${(a.equipment||[]).length? a.equipment.map(e=>escapeHtml(e.item)+' (Qty: '+e.qty+') - Status: '+(e.returned?'RETURNED':'NO RETURNED')).join('<br>') : '—'}</span></div>
   </div>
   <div style="text-align:right;margin-top:14px;">
     <button class="btn primary small" onclick="printRecord('${a.id}')">Print Record</button>
@@ -366,20 +424,23 @@ function renderDashboard(){
   STAGES.forEach(s=>byStage[s.id]=state.activities.filter(a=>a.stage===s.id).length);
   const completed=state.activities.filter(a=>a.status==='Completed').length;
   const upcoming=state.activities.filter(a=>a.dateOfActivity>=new Date().toISOString().slice(0,10)).length;
+  const inProgress=total-completed;
   const grid=$('#statsGrid');
   grid.innerHTML=`
-    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value">${total}</div><div class="stat-label">Total Applications</div></div>
-    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${completed}</div><div class="stat-label">Completed</div></div>
-    <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-value">${upcoming}</div><div class="stat-label">Upcoming Events</div></div>
-    <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-value">${total-completed}</div><div class="stat-label">In Progress</div></div>
+    <div class="stat-card" data-stat="total"><div class="stat-icon">📋</div><div class="stat-value">${total}</div><div class="stat-label">Total Applications</div></div>
+    <div class="stat-card" data-stat="completed"><div class="stat-icon">✅</div><div class="stat-value">${completed}</div><div class="stat-label">Completed</div></div>
+    <div class="stat-card" data-stat="upcoming"><div class="stat-icon">📅</div><div class="stat-value">${upcoming}</div><div class="stat-label">Upcoming Events</div></div>
+    <div class="stat-card" data-stat="inprogress"><div class="stat-icon">⏳</div><div class="stat-value">${inProgress}</div><div class="stat-label">In Progress</div></div>
   `;
-  const recent=state.activities.slice(0,5);
+  grid.querySelectorAll('[data-stat]').forEach(card=>card.addEventListener('click',()=>openStatsModal(card.dataset.stat)));
+  updateNotifBadge();
+  const recent=[...state.activities].sort((a,b)=>new Date(a.dateOfActivity)-new Date(b.dateOfActivity)).slice(0,5);
   const rl=$('#recentList'); rl.innerHTML='';
   if(recent.length===0){ rl.innerHTML='<li class="recent-item"><div class="recent-info"><div class="recent-title">No applications yet</div><div class="recent-meta">Create your first one!</div></div></li>'; }
   else {
     recent.forEach(a=>{
       const li=document.createElement('li'); li.className='recent-item';
-      li.innerHTML=`<span class="recent-dot"></span><div class="recent-info"><div class="recent-title">${escapeHtml(a.nameOfActivity)}</div><div class="recent-meta">${formatDate(a.dateOfActivity)} ${a.timeStart?'⏰ '+a.timeStart+(a.timeEnd?' - '+a.timeEnd:''):''}</div></div>`;
+      li.innerHTML=`<span class="recent-dot"></span><div class="recent-info"><div class="recent-title">${escapeHtml(a.nameOfActivity)}</div><div class="recent-meta">${formatDate(a.dateOfActivity)} ${a.timeStart?'⏰ '+formatTimeRange(a):''}</div></div>`;
       li.addEventListener('click',()=>openDetail(a.id));
       rl.appendChild(li);
     });
@@ -405,7 +466,7 @@ function renderRecords(){
   if(q) list=list.filter(a=>(a.nameOfActivity+' '+a.organizer+' '+a.venue+' '+a.objectives).toLowerCase().includes(q));
   if(d) list=list.filter(a=>a.dateOfActivity===d);
   if(m) list=list.filter(a=>monthKey(a.dateOfActivity)===m);
-  list.sort((a,b)=>new Date(b.dateOfActivity)-new Date(a.dateOfActivity));
+  list.sort((a,b)=>new Date(a.dateOfActivity)-new Date(b.dateOfActivity));
 
   container.innerHTML='';
   if(list.length===0){ empty.hidden=false; return; }
@@ -413,7 +474,7 @@ function renderRecords(){
 
   const groups={};
   list.forEach(a=>{ const k=monthKey(a.dateOfActivity)||'Unknown'; (groups[k]=groups[k]||[]).push(a); });
-  Object.keys(groups).sort().reverse().forEach(key=>{
+  Object.keys(groups).sort().forEach(key=>{
     const header=document.createElement('div');
     header.style.cssText='margin:18px 0 8px;font-family:Playfair Display,serif;color:var(--maroon);font-size:20px;border-bottom:2px solid var(--border);padding-bottom:6px;';
     header.textContent = key==='Unknown'?'Unknown Date':monthLabel(key)+' ('+groups[key].length+')';
@@ -424,7 +485,7 @@ function renderRecords(){
       row.innerHTML=`
         <div>
           <div style="font-weight:600;color:var(--text);">${escapeHtml(a.nameOfActivity)}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${formatDate(a.dateOfActivity)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${formatDate(a.dateOfActivity)} • ${escapeHtml(a.status)}</div>
         </div>
         <button class="btn ghost small" data-view="${a.id}">View</button>
       `;
@@ -444,11 +505,11 @@ function printRecord(id){
   <table>
     <tr><td class="k">Date of Application</td><td>${formatDate(a.dateOfApplication)}</td></tr>
     <tr><td class="k">Name of Activity</td><td>${escapeHtml(a.nameOfActivity)}</td></tr>
-    <tr><td class="k">Date of Activity</td><td>${formatDate(a.dateOfActivity)} ${a.timeStart?('at '+a.timeStart+(a.timeEnd?' - '+a.timeEnd:'')):''}</td></tr>
+    <tr><td class="k">Date of Activity</td><td>${formatDate(a.dateOfActivity)}</td></tr>
     <tr><td class="k">Organizer / Class</td><td>${escapeHtml(a.organizer)}</td></tr>
     <tr><td class="k">Venue</td><td>${escapeHtml(a.venue)}</td></tr>
-    <tr><td class="k">Start Time</td><td>${a.timeStart||'—'}</td></tr>
-    <tr><td class="k">End Time</td><td>${a.timeEnd||'—'}</td></tr>
+    <tr><td class="k">Start Time</td><td>${formatTime(a.timeStart)||'—'}</td></tr>
+    <tr><td class="k">End Time</td><td>${formatTime(a.timeEnd)||'—'}</td></tr>
     <tr><td class="k">Requested by</td><td>${escapeHtml(a.requestedBy||'—')}</td></tr>
     <tr><td class="k">Noted by</td><td>${escapeHtml(a.notedBy||'—')}</td></tr>
     <tr><td class="k">Objectives</td><td>${escapeHtml(a.objectives)}</td></tr>
@@ -456,15 +517,15 @@ function printRecord(id){
   </table>
   <h2>Step 2 — Compliance Review</h2>
   <table>
-    <tr><td class="k">Requirements</td><td>${escapeHtml(a.compliance?.requirements||'—')}</td></tr>
+    
     <tr><td class="k">Reviewed By</td><td>${escapeHtml(a.compliance?.reviewer||'—')}</td></tr>
     <tr><td class="k">Recommendation</td><td>${escapeHtml(a.compliance?.recommendation||'—')}</td></tr>
-    <tr><td class="k">Notes</td><td>${escapeHtml(a.compliance?.notes||'—')}</td></tr>
+    
   </table>
   <h2>Step 3 — Equipment Borrowed</h2>
   <table>
-    <tr><th>Item</th><th>Qty</th><th>Borrowed By</th><th>Date Borrowed</th><th>Returned</th></tr>
-    ${(a.equipment||[]).map(e=>`<tr><td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${escapeHtml(e.borrowedBy)}</td><td>${formatDate(e.dateBorrowed)}</td><td>${e.returned?'Yes':'No'}</td></tr>`).join('')||'<tr><td colspan="5">None</td></tr>'}
+    <tr><th>Item</th><th>Qty</th><th>Returned Status</th></tr>
+    ${(a.equipment||[]).map(e=>`<tr><td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td>${e.returned?'RETURNED':'NO RETURNED'}</td></tr>`).join('')||'<tr><td colspan="3">None</td></tr>'}
   </table>
   <br><button onclick="window.print()">Print</button>
   </body></html>`;
@@ -518,7 +579,42 @@ function seed(){
   save();
   localStorage.setItem('seedVersion', SEED_VERSION);
 }
-async function initApp(){ await load(); renderDashboard(); showView('dashboard'); }
+async function initApp(){ await load(); renderDashboard(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
+
+function scheduleNotifications(){
+  if(!('Notification' in window)) return;
+  const notified = new Set(JSON.parse(localStorage.getItem('notifiedEvents')||'[]'));
+  const notify = (a)=>{
+    if(notified.has(a.id)) return;
+    if(Notification.permission==='granted'){
+      try { new Notification('Upcoming Event in 1 hour', { body: a.nameOfActivity + ' at ' + formatTime(a.timeStart) + (a.venue ? ' — ' + a.venue : '') }); } catch(e){}
+    }
+    toast('Reminder: ' + a.nameOfActivity + ' starts in 1 hour');
+    notified.add(a.id);
+    localStorage.setItem('notifiedEvents', JSON.stringify([...notified]));
+  };
+  if(Notification.permission==='default') Notification.requestPermission();
+  state.activities.forEach(a=>{
+    if(a.status!=='Upcoming') return;
+    if(!a.dateOfActivity || !a.timeStart) return;
+    const dt = new Date(a.dateOfActivity + 'T' + a.timeStart);
+    const eventTime = dt.getTime();
+    if(isNaN(eventTime)) return;
+    if(eventTime <= Date.now()) return;
+    if(notified.has(a.id)) return;
+    const notifyAt = eventTime - 60*60*1000;
+    const delay = notifyAt - Date.now();
+    if(delay <= 0){
+      // less than 1 hour away
+      notify(a);
+    } else if(delay <= 7*24*60*60*1000){
+      setTimeout(()=>notify(a), delay);
+    }
+  });
+  if(!window._notifInterval){
+    window._notifInterval = setInterval(()=>scheduleNotifications(), 60000);
+  }
+}
 const loginScreen = $('#loginScreen');
 const appArea = $('#appArea');
 function showApp(){ loginScreen.style.display='none'; appArea.style.display='block'; if(!window._inited){ window._inited=true; initApp(); } }
@@ -527,7 +623,7 @@ $('#loginForm').addEventListener('submit', e => {
   e.preventDefault();
   const u = $('#loginUser').value.trim();
   const p = $('#loginPass').value;
-  if (u === 'rebby' && p === '10152004') {
+  if (u === 'sysad' && p === 'eXecute022711') {
     sessionStorage.setItem('loggedIn','1');
     showApp();
   } else {

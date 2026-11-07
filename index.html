@@ -207,7 +207,7 @@
           </label>
           <select id="sortBy">
             <option value="event-desc">Event date (newest)</option>
-            <option value="event-asc">Event date (oldest)</option>
+            <option value="event-asc" selected>Event date (oldest)</option>
             <option value="app-desc">Application date (newest)</option>
             <option value="title">Name A-Z</option>
           </select>
@@ -254,6 +254,15 @@
     <div class="modal-panel">
       <button class="modal-close" data-close aria-label="Close">×</button>
       <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- Stats Floater Modal -->
+  <div class="modal" id="statsModal" hidden>
+    <div class="modal-backdrop" data-close-stats></div>
+    <div class="modal-panel">
+      <button class="modal-close" data-close-stats aria-label="Close">×</button>
+      <div id="statsModalContent"></div>
     </div>
   </div>
 
