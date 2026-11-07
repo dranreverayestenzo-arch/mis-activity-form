@@ -672,7 +672,7 @@ function renderSchoolYearRecords(){
   let html='';
   state.schoolYearRecords.forEach((rec, idx)=>{
     html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
-      <span>📄 ${escapeHtml(rec.schoolYear)} (${(rec.vouchers||[]).length} records)</span>
+      <span>📄 ${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</span>
       <div style="display:flex;gap:6px;">
         <button class="btn primary small" data-syview="${idx}">View</button>
         <button class="btn ghost small" data-sydel="${idx}">Delete</button>
@@ -694,10 +694,11 @@ function renderSchoolYearRecords(){
   }));
 }
 
-function viewSchoolYear(idx){
+async function viewSchoolYear(idx){
   const rec = state.schoolYearRecords[idx]; if(!rec) return;
   const w = window.open('', '_blank');
   if(!w) { toast('Popup blocked'); return; }
+  const cssUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/,'') + 'styles.css';
   let rows = (rec.vouchers||[]).map(v=>`<tr>
     <td>${escapeHtml(v.idNo)}</td>
     <td>${escapeHtml(v.name)}</td>
@@ -707,8 +708,10 @@ function viewSchoolYear(idx){
     <td>${formatDate(v.date)}</td>
   </tr>`).join('');
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(rec.schoolYear)}</title>
-  <style>body{font-family:Arial,sans-serif;padding:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:8px;text-align:left;}th{background:#800000;color:#fff;}</style>
-  </head><body><h1>School Year ${escapeHtml(rec.schoolYear)}</h1>
+  <link rel="stylesheet" href="${cssUrl}">
+  <style>body{padding:20px;} .hero h1{color:var(--maroon,#800000);} table{width:100%;border-collapse:collapse;background:var(--surface,#fff);} th,td{padding:10px 12px;border-bottom:1px solid var(--border,#ddd);font-size:13px;} th{background:var(--maroon,#800000);color:#fff;}</style>
+  </head><body>
+  <div class="hero"><h1>WIFI VOUCHERS SY ${escapeHtml(rec.schoolYear)}</h1><p>Complete record of wifi voucher assignments.</p></div>
   <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
   </body></html>`);
   w.document.close();
