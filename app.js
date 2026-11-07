@@ -677,6 +677,52 @@ function renderWifi(){
 $('#wifiSearch')?.addEventListener('input', renderWifi);
 $('#wifiDeptFilter')?.addEventListener('change', renderWifi);
 
+function showArchiveModal(idx){
+  const rec = state.schoolYearRecords[idx]; if(!rec) return;
+  const existing = $('#archiveModal'); if(existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'archiveModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
+  const rows = (rec.vouchers||[]).map(v=>`<tr>
+    <td>${escapeHtml(v.idNo)}</td>
+    <td>${escapeHtml(v.name)}</td>
+    <td>${escapeHtml(v.voucher)}</td>
+    <td>${escapeHtml(v.dept||'')}</td>
+    <td>${escapeHtml(v.course)}</td>
+    <td>${formatDate(v.date)}</td>
+    <td style="white-space:nowrap;">
+      <button class="btn primary small" data-aedit="${v.id}">Edit</button>
+      <button class="btn ghost small" data-adel="${v.id}">Delete</button>
+    </td>
+  </tr>`).join('');
+  overlay.innerHTML = `<div style="background:var(--surface,#fff);border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h2 style="margin:0;">${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</h2>
+      <button class="btn ghost small" id="closeArchiveModal">Close</button>
+    </div>
+    <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th style="width:160px;"></th></tr></thead><tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No vouchers.</td></tr>'}</tbody></table>
+  </div>`;
+  document.body.appendChild(overlay);
+  $('#closeArchiveModal').addEventListener('click', ()=>overlay.remove());
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.querySelectorAll('[data-aedit]').forEach(b=>b.addEventListener('click',()=>{
+    overlay.remove();
+    state.archiveView = rec.schoolYear;
+    state.wifiEditingId = b.dataset.aedit;
+    showView('wifi');
+    editWifi(b.dataset.aedit);
+  }));
+  overlay.querySelectorAll('[data-adel]').forEach(b=>b.addEventListener('click',()=>{
+    const id = b.dataset.adel;
+    if(!confirm('Delete this voucher?')) return;
+    rec.vouchers = (rec.vouchers||[]).filter(v=>v.id!==id);
+    saveSyRecords();
+    overlay.remove();
+    showArchiveModal(idx);
+    toast('Voucher deleted');
+  }));
+}
+
 function renderSchoolYearRecords(){
   const container = $('#schoolYearRecordsList'); if(!container) return;
   if(!state.schoolYearRecords.length){ container.innerHTML='<p style="color:var(--text-muted);">No school year records yet.</p>'; return; }
@@ -706,8 +752,7 @@ function renderSchoolYearRecords(){
   container.innerHTML = html;
   container.querySelectorAll('[data-syview]').forEach(b=>b.addEventListener('click',()=>{
     const idx = parseInt(b.dataset.syview,10);
-    const el = $('#sytable-' + idx);
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    showArchiveModal(idx);
   }));
   container.querySelectorAll('[data-sydel]').forEach(b=>b.addEventListener('click',()=>{
     const idx = parseInt(b.dataset.sydel,10);
