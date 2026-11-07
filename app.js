@@ -670,8 +670,8 @@ function renderSchoolYearRecords(){
   const container = $('#schoolYearRecordsList'); if(!container) return;
   if(!state.schoolYearRecords.length){ container.innerHTML='<p style="color:var(--text-muted);">No school year records yet.</p>'; return; }
   let html='';
-  state.schoolYearRecords.forEach(rec=>{
-    html += `<h3>${escapeHtml(rec.schoolYear)}</h3>`;
+  state.schoolYearRecords.forEach((rec, idx)=>{
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;"><h3>${escapeHtml(rec.schoolYear)}</h3><button class="btn ghost small" data-sydel="${idx}">Delete</button></div>`;
     if(!rec.vouchers || !rec.vouchers.length){ html += '<p style="color:var(--text-muted);">No vouchers.</p>'; return; }
     html += '<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th></tr></thead><tbody>';
     rec.vouchers.forEach(v=>{
@@ -687,6 +687,14 @@ function renderSchoolYearRecords(){
     html += '</tbody></table>';
   });
   container.innerHTML = html;
+  container.querySelectorAll('[data-sydel]').forEach(b=>b.addEventListener('click',()=>{
+    const idx = parseInt(b.dataset.sydel,10);
+    if(!confirm('Delete this school year record?')) return;
+    state.schoolYearRecords.splice(idx,1);
+    saveSyRecords();
+    renderSchoolYearRecords();
+    toast('School year record deleted');
+  }));
 }
 
 $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
