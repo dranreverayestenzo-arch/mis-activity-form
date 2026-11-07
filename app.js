@@ -13,6 +13,7 @@ if (window.supabase) {
 const state = {
   activities: [],
   wifiVouchers: [],
+  wifiEditingId: null,
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
@@ -594,15 +595,15 @@ function seed(){
   localStorage.setItem('seedVersion', SEED_VERSION);
 }
 const WIFI_COURSES = {
-  CCS: ['BSIT','BSCS'],
-  CAS: ['AB ENGLISH','AB POLSCI','AB FILIPINO'],
-  COE: ['BSCE','BSME','BSEE'],
-  COC: ['BSCRIM'],
-  CBA: ['BSBA'],
-  CED: ['BEED','BSED','TCP'],
-  GS: ['MAED'],
+  CCS: ['BS-IT','BS-CS'],
+  CAS: ['AB-ENGLISH','AB-POLSCI','AB-FILIPINO'],
+  COE: ['BS-CE','BS-ME','BS-EE','BS-ECE','BS-CpE'],
+  COC: ['BS-CRIM'],
+  CBA: ['BS-BA'],
+  CED: ['BE-ED','BS-ED','TCP'],
+  GS: ['MA-ED'],
   FACULTY: ['CCS','CAS','CED','BED','ACCT','COC','REGISTRAR','LIBRARY','COC FACULTY','HR ASSOCIATES','GARDENER','MEDIA OFFICER','COE','GS'],
-  HS: ['HIGH SCHOOL'],
+  HS: ['GRADE 7','GRADE 8','GRADE 9','GRADE 10','GRADE 11','GRADE 12'],
 };
 function populateWifiCourses(){
   const dept = $('#wDept')?.value || 'CCS';
@@ -622,7 +623,7 @@ function renderWifi(){
   if(q) list=list.filter(v=>(v.idNo||'').toLowerCase().includes(q));
   if(dept) list=list.filter(v=>v.dept===dept);
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
-  let html='<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th>Status</th><th style="width:80px;"></th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th>Status</th><th style="width:160px;"></th></tr></thead><tbody>';
   list.forEach(v=>{
     const active = isVoucherActive(v);
     html+=`<tr>
@@ -633,11 +634,18 @@ function renderWifi(){
       <td>${escapeHtml(v.course)}</td>
       <td>${formatDate(v.date)}</td>
       <td style="color:${active?'#1a7f37':'#cf222e'};font-weight:600;">${active?'ACTIVE':'EXPIRED'}</td>
-      <td><button class="btn ghost small" data-wdel="${v.id}">Delete</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn ghost small" data-wedit="${v.id}">Edit</button>
+        <button class="btn ghost small" data-wdel="${v.id}">Delete</button>
+      </td>
     </tr>`;
   });
   html+='</tbody></table>';
   container.innerHTML=html;
+  container.querySelectorAll('[data-wedit]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.wedit;
+    editWifi(id);
+  }));
   container.querySelectorAll('[data-wdel]').forEach(b=>b.addEventListener('click',()=>{
     const id=b.dataset.wdel;
     state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==id);
@@ -663,17 +671,38 @@ $('#wIdNo')?.addEventListener('input', ()=>{
   const msg = $('#wIdMsg');
   if(!msg) return;
   const existing = idNo ? activeVoucherForId(idNo) : null;
-  if(existing){
-    msg.textContent = 'VOUCHER ALREADY OBTAIN';
+  if(existing && existing.id !== state.wifiEditingId){
+    msg.textContent = 'VOUCHER ALREADY OBTAINED';
     msg.style.color = '#cf222e';
   } else {
     msg.textContent = '';
   }
 });
+function editWifi(id){
+  const v = state.wifiVouchers.find(x=>x.id===id); if(!v) return;
+  state.wifiEditingId = id;
+  showView('wifi');
+  $('#wIdNo').value = v.idNo || '';
+  $('#wName').value = v.name || '';
+  $('#wVoucher').value = v.voucher || '';
+  $('#wDept').value = v.dept || 'CCS';
+  populateWifiCourses();
+  $('#wCourse').value = v.course || '';
+  $('#wDate').value = v.date || '';
+  const btn = $('#wifiForm')?.querySelector('button[type="submit"]');
+  if (btn) btn.textContent = 'Update Voucher';
+  const msg = $('#wIdMsg'); if (msg) msg.textContent = '';
+}
+function cancelWifiEdit(){
+  state.wifiEditingId = null;
+  const btn = $('#wifiForm')?.querySelector('button[type="submit"]');
+  if (btn) btn.textContent = 'Save Voucher';
+}
 $('#wifiForm')?.addEventListener('submit', (e)=>{
   e.preventDefault();
+  const editingId = state.wifiEditingId;
   const v={
-    id: uid(),
+    id: editingId || uid(),
     idNo: $('#wIdNo').value.trim(),
     name: $('#wName').value.trim(),
     voucher: $('#wVoucher').value.trim(),
@@ -683,17 +712,26 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   };
   if(!v.idNo||!v.name||!v.voucher||!v.course||!v.date){ toast('Fill all fields'); return; }
   const existing = activeVoucherForId(v.idNo);
-  if(existing){
+  if(existing && existing.id !== v.id){
     const msg=$('#wIdMsg');
-    if(msg){ msg.textContent='VOUCHER ALREADY OBTAIN'; msg.style.color='#cf222e'; }
+    if(msg){ msg.textContent='VOUCHER ALREADY OBTAINED'; msg.style.color='#cf222e'; }
     toast('Active voucher exists for this ID');
     return;
   }
-  state.wifiVouchers.unshift(v);
+  if(editingId){
+    const idx = state.wifiVouchers.findIndex(x=>x.id===editingId);
+    if(idx>=0) state.wifiVouchers[idx] = v; else state.wifiVouchers.unshift(v);
+  } else {
+    state.wifiVouchers.unshift(v);
+  }
   saveWifi();
+  state.wifiEditingId = null;
+  const btn = $('#wifiForm')?.querySelector('button[type="submit"]');
+  if (btn) btn.textContent = 'Save Voucher';
   $('#wifiForm').reset();
+  populateWifiCourses();
   const msg=$('#wIdMsg'); if(msg) msg.textContent='';
-  toast('Voucher saved');
+  toast(editingId ? 'Voucher updated' : 'Voucher saved');
   renderWifi();
 });
 async function initApp(){ await load(); renderDashboard(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
