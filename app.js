@@ -12,6 +12,7 @@ if (window.supabase) {
 
 const state = {
   activities: [],
+  wifiVouchers: [],
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
@@ -22,6 +23,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 async function load() {
+  try { state.wifiVouchers = JSON.parse(localStorage.getItem('wifi_vouchers') || '[]'); } catch { state.wifiVouchers = []; }
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient.from('activities').select('*').order('createdAt', { ascending: false });
@@ -86,6 +88,7 @@ function showView(name){
   if(name==='dashboard') renderDashboard();
   if(name==='list') renderList();
   if(name==='records') renderRecords();
+  if(name==='wifi') renderWifi();
 }
 $$('.nav-btn, [data-view]').forEach(el=>{
   el.addEventListener('click',()=>{ const v=el.getAttribute('data-view'); if(v) showView(v); });
@@ -579,6 +582,46 @@ function seed(){
   save();
   localStorage.setItem('seedVersion', SEED_VERSION);
 }
+function renderWifi(){
+  const container=$('#wifiList'); if(!container) return;
+  const list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
+  let html='<table style="width:100%;border-collapse:collapse;"><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Course</th><th>Date</th><th></th></tr></thead><tbody>';
+  list.forEach(v=>{
+    html+=`<tr>
+      <td>${escapeHtml(v.idNo)}</td>
+      <td>${escapeHtml(v.name)}</td>
+      <td>${escapeHtml(v.voucher)}</td>
+      <td>${escapeHtml(v.course)}</td>
+      <td>${formatDate(v.date)}</td>
+      <td><button class="btn ghost small" data-wdel="${v.id}">Delete</button></td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  container.innerHTML=html;
+  container.querySelectorAll('[data-wdel]').forEach(b=>b.addEventListener('click',()=>{
+    state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==b.dataset.wdel);
+    localStorage.setItem('wifi_vouchers', JSON.stringify(state.wifiVouchers));
+    renderWifi();
+  }));
+}
+$('#wifiForm')?.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const v={
+    id: uid(),
+    idNo: $('#wIdNo').value.trim(),
+    name: $('#wName').value.trim(),
+    voucher: $('#wVoucher').value.trim(),
+    course: $('#wCourse').value,
+    date: $('#wDate').value,
+  };
+  if(!v.idNo||!v.name||!v.voucher||!v.course||!v.date){ toast('Fill all fields'); return; }
+  state.wifiVouchers.unshift(v);
+  localStorage.setItem('wifi_vouchers', JSON.stringify(state.wifiVouchers));
+  $('#wifiForm').reset();
+  toast('Voucher saved');
+  renderWifi();
+});
 async function initApp(){ await load(); renderDashboard(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
 
 function scheduleNotifications(){

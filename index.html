@@ -50,6 +50,7 @@
       <button class="nav-btn" data-view="form">New Application</button>
       <button class="nav-btn" data-view="list">Applications</button>
       <button class="nav-btn" data-view="records">Records</button>
+      <button class="nav-btn" data-view="wifi">Wifi Vouchers</button>
     </nav>
     <button class="btn ghost small" id="logoutBtn" style="padding:8px 12px;">Logout</button>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -245,6 +246,91 @@
         <h3>No records found</h3>
         <p>Try adjusting your filters.</p>
       </div>
+    </section>
+    <!-- Wifi Vouchers -->
+    <section class="view" id="view-wifi">
+      <div class="hero">
+        <h1>Wifi Vouchers</h1>
+        <p>Record and manage wifi voucher assignments.</p>
+      </div>
+      <div class="form-card" style="margin-bottom:24px;">
+        <form id="wifiForm" novalidate autocomplete="off">
+          <div class="form-grid">
+            <div class="field">
+              <label for="wIdNo">ID No.</label>
+              <input type="text" id="wIdNo" required />
+            </div>
+            <div class="field">
+              <label for="wName">Name</label>
+              <input type="text" id="wName" required />
+            </div>
+            <div class="field">
+              <label for="wVoucher">Voucher Code</label>
+              <input type="text" id="wVoucher" required />
+            </div>
+            <div class="field">
+              <label for="wCourse">Course</label>
+              <select id="wCourse" required>
+                <optgroup label="CCS">
+                  <option value="BSIT">BSIT</option>
+                  <option value="BSCS">BSCS</option>
+                </optgroup>
+                <optgroup label="CAS">
+                  <option value="AB ENGLISH">AB ENGLISH</option>
+                  <option value="AB POLSCI">AB POLSCI</option>
+                  <option value="AB FILIPINO">AB FILIPINO</option>
+                </optgroup>
+                <optgroup label="COE">
+                  <option value="BSCE">BSCE</option>
+                  <option value="BSME">BSME</option>
+                  <option value="BSEE">BSEE</option>
+                </optgroup>
+                <optgroup label="COC">
+                  <option value="BSCRIM">BSCRIM</option>
+                </optgroup>
+                <optgroup label="CBA">
+                  <option value="BSBA">BSBA</option>
+                </optgroup>
+                <optgroup label="CED">
+                  <option value="BEED">BEED</option>
+                  <option value="BSED">BSED</option>
+                  <option value="TCP">TCP</option>
+                </optgroup>
+                <optgroup label="GS">
+                  <option value="MAED">MAED</option>
+                </optgroup>
+                <optgroup label="Faculty & Staff">
+                  <option value="CCS">CCS</option>
+                  <option value="CAS">CAS</option>
+                  <option value="CED">CED</option>
+                  <option value="BED">BED</option>
+                  <option value="ACCT">ACCT</option>
+                  <option value="COC">COC</option>
+                  <option value="REGISTRAR">REGISTRAR</option>
+                  <option value="LIBRARY">LIBRARY</option>
+                  <option value="COC FACULTY">COC FACULTY</option>
+                  <option value="HR ASSOCIATES">HR ASSOCIATES</option>
+                  <option value="GARDENER">GARDENER</option>
+                  <option value="MEDIA OFFICER">MEDIA OFFICER</option>
+                  <option value="COE">COE</option>
+                  <option value="GS">GS</option>
+                </optgroup>
+                <optgroup label="High School">
+                  <option value="HIGH SCHOOL">HIGH SCHOOL</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field">
+              <label for="wDate">Date</label>
+              <input type="date" id="wDate" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Save Voucher</button>
+          </div>
+        </form>
+      </div>
+      <div id="wifiList"></div>
     </section>
   </main>
 
