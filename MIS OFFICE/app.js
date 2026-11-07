@@ -14,6 +14,10 @@ const state = {
   activities: [],
   wifiVouchers: [],
   wifiEditingId: null,
+  currentSchoolYear: localStorage.getItem('currentSchoolYear') || '2027-2028',
+  schoolYearRecords: JSON.parse(localStorage.getItem('schoolYearRecords') || '[]'),
+  archiveView: null,
+  wifiShowCount: 15,
   theme: localStorage.getItem('theme') || 'light',
   currentDetail: null,
   formEquipment: [],
@@ -47,6 +51,10 @@ async function saveWifi() {
   if (supabaseClient) {
     try { await supabaseClient.from('wifi_vouchers').upsert(state.wifiVouchers, { onConflict: 'id' }); } catch (e) { console.error(e); }
   }
+}
+function saveSyRecords() {
+  localStorage.setItem('schoolYearRecords', JSON.stringify(state.schoolYearRecords));
+  localStorage.setItem('currentSchoolYear', state.currentSchoolYear);
 }
 async function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.activities));
@@ -99,8 +107,9 @@ function showView(name){
   if(name==='dashboard') renderDashboard();
   if(name==='list') renderList();
   if(name==='records') renderRecords();
-  if(name==='wifi'){ populateWifiCourses(); }
-  if(name==='wifirecords'){ renderWifi(); }
+  if(name==='wifi'){ populateWifiCourses(); updateWifiTitles(); }
+  if(name==='wifirecords'){ renderWifi(); updateWifiTitles(); }
+  if(name==='schoolyears'){ renderSchoolYearRecords(); }
 }
 $$('.nav-btn, [data-view]').forEach(el=>{
   el.addEventListener('click',()=>{ const v=el.getAttribute('data-view'); if(v) showView(v); });
@@ -619,7 +628,12 @@ function renderWifi(){
   const container=$('#wifiRecordsList') || $('#wifiList'); if(!container) return;
   const q = ($('#wifiSearch')?.value || '').trim().toLowerCase();
   const dept = ($('#wifiDeptFilter')?.value || '').trim();
-  let list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let source = state.wifiVouchers;
+  if(state.archiveView){
+    const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+    source = rec ? (rec.vouchers||[]) : [];
+  }
+  let list=[...source].sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(q) list=list.filter(v=>(v.idNo||'').toLowerCase().includes(q));
   if(dept) list=list.filter(v=>v.dept===dept);
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
@@ -648,16 +662,183 @@ function renderWifi(){
   }));
   container.querySelectorAll('[data-wdel]').forEach(b=>b.addEventListener('click',()=>{
     const id=b.dataset.wdel;
-    state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==id);
-    saveWifi();
-    if (supabaseClient) {
-      supabaseClient.from('wifi_vouchers').delete().eq('id', id).then(({error})=>{ if(error) console.error(error); });
+    if(state.archiveView){
+      const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+      if(rec){ rec.vouchers = (rec.vouchers||[]).filter(v=>v.id!==id); saveSyRecords(); }
+    } else {
+      state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==id);
+      saveWifi();
+      if (supabaseClient) {
+        supabaseClient.from('wifi_vouchers').delete().eq('id', id).then(({error})=>{ if(error) console.error(error); });
+      }
     }
     renderWifi();
   }));
 }
 $('#wifiSearch')?.addEventListener('input', renderWifi);
 $('#wifiDeptFilter')?.addEventListener('change', renderWifi);
+
+function showArchiveModal(idx){
+  const rec = state.schoolYearRecords[idx]; if(!rec) return;
+  const existing = $('#archiveModal'); if(existing) existing.remove();
+  let limit = 15;
+  const overlay = document.createElement('div');
+  overlay.id = 'archiveModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
+
+  function renderBody(){
+    const vouchers = rec.vouchers||[];
+    const shown = vouchers.slice(0, limit);
+    const rows = shown.map(v=>`<tr data-idno="${escapeHtml((v.idNo||'').toLowerCase())}" style="border-bottom:1px solid var(--border,#eee);">
+      <td style="padding:10px 12px;">${escapeHtml(v.idNo)}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.name)}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.voucher)}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.dept||'')}</td>
+      <td style="padding:10px 12px;">${escapeHtml(v.course)}</td>
+      <td style="padding:10px 12px;">${formatDate(v.date)}</td>
+      <td style="padding:10px 12px;white-space:nowrap;">
+        <button class="btn primary small" data-aedit="${v.id}">Edit</button>
+        <button class="btn ghost small" data-adel="${v.id}">Delete</button>
+      </td>
+    </tr>`).join('');
+    const tbody = overlay.querySelector('#archiveTableBody');
+    if(tbody){
+      tbody.innerHTML = rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:12px;">No vouchers.</td></tr>';
+      bindRowEvents();
+    }
+    const sm = overlay.querySelector('#showMoreArchive');
+    if(sm){
+      sm.style.display = vouchers.length > limit ? 'inline-block' : 'none';
+    }
+  }
+
+  function bindRowEvents(){
+    overlay.querySelectorAll('[data-aedit]').forEach(b=>b.addEventListener('click',()=>{
+      overlay.remove();
+      state.archiveView = rec.schoolYear;
+      state.wifiEditingId = b.dataset.aedit;
+      showView('wifi');
+      editWifi(b.dataset.aedit);
+    }));
+    overlay.querySelectorAll('[data-adel]').forEach(b=>b.addEventListener('click',()=>{
+      const id = b.dataset.adel;
+      if(!confirm('Delete this voucher?')) return;
+      rec.vouchers = (rec.vouchers||[]).filter(v=>v.id!==id);
+      saveSyRecords();
+      overlay.remove();
+      showArchiveModal(idx);
+      toast('Voucher deleted');
+    }));
+  }
+
+  overlay.innerHTML = `<div style="background:var(--surface,#fff);border-radius:12px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-family:inherit;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <h2 style="margin:0;color:var(--maroon,#800000);font-size:20px;">${escapeHtml(rec.schoolYear)} — WIFI VOUCHERS</h2>
+      <button class="btn ghost small" id="closeArchiveModal">Close</button>
+    </div>
+    <div class="toolbar" style="margin-bottom:12px;">
+      <div class="search-box">
+        <input type="text" id="archiveSearch" placeholder="Search ID number..." style="padding:8px 12px;border:1px solid var(--border,#ccc);border-radius:6px;font-size:13px;" />
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;background:var(--surface,#fff);border-radius:8px;overflow:hidden;font-size:13px;">
+      <thead><tr style="background:var(--maroon,#800000);color:#fff;">
+        <th style="padding:10px 12px;text-align:left;">ID No.</th>
+        <th style="padding:10px 12px;text-align:left;">Name</th>
+        <th style="padding:10px 12px;text-align:left;">Voucher Code</th>
+        <th style="padding:10px 12px;text-align:left;">Department</th>
+        <th style="padding:10px 12px;text-align:left;">Course</th>
+        <th style="padding:10px 12px;text-align:left;">Date</th>
+        <th style="padding:10px 12px;text-align:left;width:160px;"></th>
+      </tr></thead>
+      <tbody id="archiveTableBody"></tbody>
+    </table>
+    <div style="margin-top:12px;text-align:center;">
+      <button class="btn primary small" id="showMoreArchive">Show more</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  renderBody();
+  $('#archiveSearch')?.addEventListener('input', (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    overlay.querySelectorAll('#archiveTableBody tr[data-idno]').forEach(tr=>{
+      tr.style.display = (tr.dataset.idno||'').includes(q) ? '' : 'none';
+    });
+  });
+  $('#closeArchiveModal').addEventListener('click', ()=>overlay.remove());
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  $('#showMoreArchive')?.addEventListener('click', ()=>{ limit += 15; renderBody(); });
+}
+
+function renderSchoolYearRecords(){
+  const container = $('#schoolYearRecordsList'); if(!container) return;
+  if(!state.schoolYearRecords.length){ container.innerHTML='<p style="color:var(--text-muted);">No school year records yet.</p>'; return; }
+  let html='';
+  state.schoolYearRecords.forEach((rec, idx)=>{
+    const rows = (rec.vouchers||[]).map(v=>`<tr>
+      <td>${escapeHtml(v.idNo)}</td>
+      <td>${escapeHtml(v.name)}</td>
+      <td>${escapeHtml(v.voucher)}</td>
+      <td>${escapeHtml(v.dept||'')}</td>
+      <td>${escapeHtml(v.course)}</td>
+      <td>${formatDate(v.date)}</td>
+    </tr>`).join('');
+    html += `<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface-2);">
+        <span>📄 ${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn primary small" data-syview="${idx}">View</button>
+          <button class="btn ghost small" data-sydel="${idx}">Delete</button>
+        </div>
+      </div>
+      <div id="sytable-${idx}" style="display:none;padding:10px;">
+        <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('[data-syview]').forEach(b=>b.addEventListener('click',()=>{
+    const idx = parseInt(b.dataset.syview,10);
+    showArchiveModal(idx);
+  }));
+  container.querySelectorAll('[data-sydel]').forEach(b=>b.addEventListener('click',()=>{
+    const idx = parseInt(b.dataset.sydel,10);
+    if(!confirm('Delete this school year record?')) return;
+    state.schoolYearRecords.splice(idx,1);
+    saveSyRecords();
+    renderSchoolYearRecords();
+    toast('School year record deleted');
+  }));
+}
+
+function viewSchoolYear(idx){
+  const rec = state.schoolYearRecords[idx]; if(!rec) return;
+  const url = window.location.href.split(/[?#]/)[0] + '#archive=' + encodeURIComponent(rec.schoolYear);
+  window.open(url, 'archivePopup', 'width=900,height=700,resizable=yes,scrollbars=yes');
+}
+
+$('#newSchoolYearBtn')?.addEventListener('click', ()=>{
+  if(!confirm('Start a new school year? Current vouchers will be archived.')) return;
+  const input = prompt('Enter new school year (e.g. 2028-2029):', state.currentSchoolYear);
+  if(!input) return;
+  const archived = { schoolYear: state.currentSchoolYear, vouchers: [...state.wifiVouchers] };
+  state.schoolYearRecords.unshift(archived);
+  state.wifiVouchers = [];
+  state.currentSchoolYear = input.trim();
+  state.archiveView = null;
+  saveWifi();
+  saveSyRecords();
+  showView('wifirecords');
+  renderSchoolYearRecords();
+  toast('New school year started: ' + state.currentSchoolYear);
+});
+
+function updateWifiTitles(){
+  const sy = (state.archiveView || state.currentSchoolYear).split('#')[0];
+  document.querySelectorAll('#view-wifi .hero h1, #view-wifirecords .hero h1').forEach(h=>{
+    if(h.textContent.includes('WIFI VOUCHERS')) h.textContent = 'WIFI VOUCHERS SY ' + sy + (h.textContent.includes('Records') ? ' - Records' : '');
+  });
+}
 function isVoucherActive(v){
   if(!v.date) return false;
   const diff = (Date.now() - new Date(v.date).getTime()) / (1000*60*60*24);
@@ -679,7 +860,14 @@ $('#wIdNo')?.addEventListener('input', ()=>{
   }
 });
 function editWifi(id){
-  const v = state.wifiVouchers.find(x=>x.id===id); if(!v) return;
+  let v = null;
+  if(state.archiveView){
+    const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+    v = (rec?.vouchers||[]).find(x=>x.id===id);
+  } else {
+    v = state.wifiVouchers.find(x=>x.id===id);
+  }
+  if(!v) return;
   state.wifiEditingId = id;
   showView('wifi');
   $('#wIdNo').value = v.idNo || '';
@@ -709,6 +897,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
     dept: $('#wDept').value,
     course: $('#wCourse').value,
     date: $('#wDate').value,
+    schoolYear: state.currentSchoolYear,
   };
   if(!v.idNo||!v.name||!v.voucher||!v.course||!v.date){ toast('Fill all fields'); return; }
   const existing = activeVoucherForId(v.idNo);
@@ -718,13 +907,22 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
     toast('Active voucher exists for this ID');
     return;
   }
-  if(editingId){
+  if(state.archiveView){
+    if(!editingId){ toast('Cannot add in archive view'); return; }
+    const rec = state.schoolYearRecords.find(r=>r.schoolYear===state.archiveView);
+    if(rec){
+      const idx = (rec.vouchers||[]).findIndex(x=>x.id===editingId);
+      if(idx>=0) rec.vouchers[idx] = v; else (rec.vouchers||[]).unshift(v);
+      saveSyRecords();
+    }
+    state.archiveView = null;
+  } else if(editingId){
     const idx = state.wifiVouchers.findIndex(x=>x.id===editingId);
     if(idx>=0) state.wifiVouchers[idx] = v; else state.wifiVouchers.unshift(v);
   } else {
     state.wifiVouchers.unshift(v);
   }
-  saveWifi();
+  if(!state.archiveView) saveWifi();
   state.wifiEditingId = null;
   const btn = $('#wifiForm')?.querySelector('button[type="submit"]');
   if (btn) btn.textContent = 'Save Voucher';
@@ -734,7 +932,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
   toast(editingId ? 'Voucher updated' : 'Voucher saved');
   renderWifi();
 });
-async function initApp(){ await load(); renderDashboard(); showView('dashboard'); updateNotifBadge(); scheduleNotifications(); }
+async function initApp(){ await load(); let params = new URLSearchParams(window.location.search); if(!params.get('archive') && window.location.hash){ params = new URLSearchParams(window.location.hash.replace(/^#/,'')); } state.archiveView = params.get('archive'); renderDashboard(); updateWifiTitles(); if(state.archiveView){ showView('wifirecords'); toast('Viewing ' + state.archiveView); } else { showView('dashboard'); } updateNotifBadge(); scheduleNotifications(); }
 
 function scheduleNotifications(){
   if(!('Notification' in window)) return;

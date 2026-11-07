@@ -50,6 +50,8 @@
       <button class="nav-btn" data-view="form">New Application</button>
       <button class="nav-btn" data-view="list">Applications</button>
       <button class="nav-btn" data-view="records">Records</button>
+      <button class="nav-btn" data-view="wifi">Wifi Vouchers</button>
+      <button class="nav-btn" data-view="wifirecords">Wifi Records</button>
     </nav>
     <button class="btn ghost small" id="logoutBtn" style="padding:8px 12px;">Logout</button>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -245,6 +247,84 @@
         <h3>No records found</h3>
         <p>Try adjusting your filters.</p>
       </div>
+    </section>
+    <!-- Wifi Vouchers -->
+    <section class="view" id="view-wifi">
+      <div class="hero">
+        <h1>WIFI VOUCHERS SY 2027-2028</h1>
+        <p>Record and manage wifi voucher assignments.</p>
+      </div>
+      <div class="form-card" style="margin-bottom:24px;">
+        <form id="wifiForm" novalidate autocomplete="off">
+          <div class="form-grid">
+            <div class="field">
+              <label for="wIdNo">ID No.</label>
+              <input type="text" id="wIdNo" required />
+              <span class="error" id="wIdMsg"></span>
+            </div>
+            <div class="field">
+              <label for="wName">Name</label>
+              <input type="text" id="wName" required />
+            </div>
+            <div class="field">
+              <label for="wVoucher">Voucher Code</label>
+              <input type="text" id="wVoucher" required />
+            </div>
+            <div class="field">
+              <label for="wDept">Department</label>
+              <select id="wDept" required>
+                <option value="CCS">CCS</option>
+                <option value="CAS">CAS</option>
+                <option value="COE">COE</option>
+                <option value="COC">COC</option>
+                <option value="CBA">CBA</option>
+                <option value="CED">CED</option>
+                <option value="GS">GS</option>
+                <option value="FACULTY">Faculty &amp; Staff</option>
+                <option value="HS">High School</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="wCourse">Course</label>
+              <select id="wCourse" required></select>
+            </div>
+            <div class="field">
+              <label for="wDate">Date</label>
+              <input type="date" id="wDate" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Save Voucher</button>
+          </div>
+        </form>
+      </div>
+    </section>
+    <!-- Wifi Records -->
+    <section class="view" id="view-wifirecords">
+      <div class="hero">
+        <h1>WIFI VOUCHERS SY 2027-2028 - Records</h1>
+        <p>Complete record of wifi voucher assignments.</p>
+      </div>
+      <div class="toolbar" style="margin-bottom:12px;">
+        <div class="search-box">
+          <input type="text" id="wifiSearch" placeholder="Search ID number..." />
+        </div>
+        <div class="filters">
+          <select id="wifiDeptFilter">
+            <option value="">All Departments</option>
+            <option value="CCS">CCS</option>
+            <option value="CAS">CAS</option>
+            <option value="COE">COE</option>
+            <option value="COC">COC</option>
+            <option value="CBA">CBA</option>
+            <option value="CED">CED</option>
+            <option value="GS">GS</option>
+            <option value="FACULTY">Faculty &amp; Staff</option>
+            <option value="HS">High School</option>
+          </select>
+        </div>
+      </div>
+      <div id="wifiRecordsList"></div>
     </section>
   </main>
 
