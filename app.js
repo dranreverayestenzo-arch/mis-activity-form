@@ -683,7 +683,7 @@ function showArchiveModal(idx){
   const overlay = document.createElement('div');
   overlay.id = 'archiveModal';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;';
-  const rows = (rec.vouchers||[]).map(v=>`<tr>
+  const rows = (rec.vouchers||[]).map(v=>`<tr data-idno="${escapeHtml((v.idNo||'').toLowerCase())}">
     <td>${escapeHtml(v.idNo)}</td>
     <td>${escapeHtml(v.name)}</td>
     <td>${escapeHtml(v.voucher)}</td>
@@ -700,9 +700,20 @@ function showArchiveModal(idx){
       <h2 style="margin:0;">${escapeHtml(rec.schoolYear)} (WIFI VOUCHERS)</h2>
       <button class="btn ghost small" id="closeArchiveModal">Close</button>
     </div>
-    <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th style="width:160px;"></th></tr></thead><tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No vouchers.</td></tr>'}</tbody></table>
+    <div class="toolbar" style="margin-bottom:12px;">
+      <div class="search-box">
+        <input type="text" id="archiveSearch" placeholder="Search ID number..." />
+      </div>
+    </div>
+    <table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th style="width:160px;"></th></tr></thead><tbody id="archiveTableBody">${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No vouchers.</td></tr>'}</tbody></table>
   </div>`;
   document.body.appendChild(overlay);
+  $('#archiveSearch')?.addEventListener('input', (e)=>{
+    const q = e.target.value.trim().toLowerCase();
+    overlay.querySelectorAll('#archiveTableBody tr[data-idno]').forEach(tr=>{
+      tr.style.display = (tr.dataset.idno||'').includes(q) ? '' : 'none';
+    });
+  });
   $('#closeArchiveModal').addEventListener('click', ()=>overlay.remove());
   overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
   overlay.querySelectorAll('[data-aedit]').forEach(b=>b.addEventListener('click',()=>{
