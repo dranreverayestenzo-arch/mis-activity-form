@@ -26,6 +26,10 @@ async function load() {
   try { state.wifiVouchers = JSON.parse(localStorage.getItem('wifi_vouchers') || '[]'); } catch { state.wifiVouchers = []; }
   if (supabaseClient) {
     try {
+      const { data, error } = await supabaseClient.from('wifi_vouchers').select('*');
+      if (!error && data) state.wifiVouchers = data;
+    } catch (e) { console.error(e); }
+    try {
       const { data, error } = await supabaseClient.from('activities').select('*').order('createdAt', { ascending: false });
       if (error) throw error;
       state.activities = (data || []).map(a => ({ ...a, status: a.status || 'Upcoming', timeStart: a.timeStart || a.time || '', timeEnd: a.timeEnd || '', stage: 1, compliance: a.compliance || null, equipment: a.equipment || [], hardCopyUrl: a.hardCopyUrl || '' }));
@@ -36,6 +40,12 @@ async function load() {
     const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     state.activities = arr.map(a => ({ ...a, status: a.status || 'Upcoming', timeStart: a.timeStart || a.time || '', timeEnd: a.timeEnd || '', stage: 1 }));
   } catch { state.activities = []; }
+}
+async function saveWifi() {
+  localStorage.setItem('wifi_vouchers', JSON.stringify(state.wifiVouchers));
+  if (supabaseClient) {
+    try { await supabaseClient.from('wifi_vouchers').upsert(state.wifiVouchers, { onConflict: 'id' }); } catch (e) { console.error(e); }
+  }
 }
 async function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.activities));
@@ -630,7 +640,7 @@ function renderWifi(){
   container.innerHTML=html;
   container.querySelectorAll('[data-wdel]').forEach(b=>b.addEventListener('click',()=>{
     state.wifiVouchers=state.wifiVouchers.filter(v=>v.id!==b.dataset.wdel);
-    localStorage.setItem('wifi_vouchers', JSON.stringify(state.wifiVouchers));
+    saveWifi();
     renderWifi();
   }));
 }
@@ -676,7 +686,7 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
     return;
   }
   state.wifiVouchers.unshift(v);
-  localStorage.setItem('wifi_vouchers', JSON.stringify(state.wifiVouchers));
+  saveWifi();
   $('#wifiForm').reset();
   const msg=$('#wIdMsg'); if(msg) msg.textContent='';
   toast('Voucher saved');
