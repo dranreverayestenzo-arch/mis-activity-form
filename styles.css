@@ -186,7 +186,8 @@ body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color
 .equip-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .equip-table th, .equip-table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
 .equip-table th { color: var(--maroon); font-weight: 600; background: var(--surface); }
-#wifiRecordsList table, #wifiList table { width:100%; border-collapse:collapse; background:var(--surface); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-top:12px; }
+#wifiRecordsList, #wifiList { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+#wifiRecordsList table, #wifiList table { width:100%; min-width: 640px; border-collapse:collapse; background:var(--surface); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); margin-top:12px; }
 #wifiRecordsList th, #wifiList th { background:var(--maroon); color:#fff; padding:12px; text-align:left; font-size:13px; }
 #wifiRecordsList td, #wifiList td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; }
 #wifiRecordsList tr:hover td, #wifiList tr:hover td { background:var(--surface-2); }
