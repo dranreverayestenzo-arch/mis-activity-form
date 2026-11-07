@@ -228,9 +228,11 @@ function renderFormEquip(){
   if(head) head.style.display = '';
   state.formEquipment.forEach((e,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td><button type="button" class="btn ghost small" data-ret="${i}" style="padding:4px 8px;color:${e.returned?'#1a7f37':'#cf222e'};font-weight:600;">${e.returned?'RETURNED':'NO RETURNED'}</button></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
+    tr.innerHTML=`<td>${escapeHtml(e.item)}</td><td>${e.qty}</td><td><input type="text" value="${escapeHtml(e.borrowedBy||'')}" data-borrowed="${i}" style="width:100%;padding:4px;" /></td><td><input type="date" value="${e.dateBorrowed||''}" data-dateb="${i}" style="width:100%;padding:4px;" /></td><td><button type="button" class="btn ghost small" data-ret="${i}" style="padding:4px 8px;color:${e.returned?'#1a7f37':'#cf222e'};font-weight:600;">${e.returned?'RETURNED':'NO RETURNED'}</button></td><td><button type="button" class="btn ghost small" data-feq="${i}" style="padding:4px 8px;">✕</button></td>`;
     tbody.appendChild(tr);
   });
+  tbody.querySelectorAll('[data-borrowed]').forEach(inp=>inp.addEventListener('input',()=>{ state.formEquipment[+inp.dataset.borrowed].borrowedBy=inp.value; }));
+  tbody.querySelectorAll('[data-dateb]').forEach(inp=>inp.addEventListener('change',()=>{ state.formEquipment[+inp.dataset.dateb].dateBorrowed=inp.value; }));
   tbody.querySelectorAll('[data-ret]').forEach(btn=>btn.addEventListener('click',()=>{
     const i=+btn.dataset.ret;
     state.formEquipment[i].returned = !state.formEquipment[i].returned;
@@ -243,9 +245,11 @@ function renderFormEquip(){
 }
 $('#f_addEq').addEventListener('click',()=>{
   const item=$('#f_eqItem').value.trim(); const qty=parseInt($('#f_eqQty').value)||1;
+  const borrowedBy=$('#f_eqBy')?.value.trim()||'';
+  const dateBorrowed=$('#f_eqDate')?.value||'';
   if(!item){ toast('Enter item name'); return; }
-  state.formEquipment.push({ id:uid(), item, qty, borrowedBy:'', dateBorrowed:'', returned:false });
-  $('#f_eqItem').value=''; $('#f_eqQty').value='';
+  state.formEquipment.push({ id:uid(), item, qty, borrowedBy, dateBorrowed, returned:false });
+  $('#f_eqItem').value=''; $('#f_eqQty').value=''; if($('#f_eqBy')) $('#f_eqBy').value=''; if($('#f_eqDate')) $('#f_eqDate').value='';
   renderFormEquip();
 });
 
