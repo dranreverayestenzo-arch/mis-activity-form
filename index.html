@@ -251,7 +251,7 @@
     <!-- Wifi Vouchers -->
     <section class="view" id="view-wifi">
       <div class="hero">
-        <h1>Wifi Vouchers</h1>
+        <h1>WIFI VOUCHERS SY 2027-2028</h1>
         <p>Record and manage wifi voucher assignments.</p>
       </div>
       <div class="form-card" style="margin-bottom:24px;">
@@ -260,6 +260,7 @@
             <div class="field">
               <label for="wIdNo">ID No.</label>
               <input type="text" id="wIdNo" required />
+              <span class="error" id="wIdMsg"></span>
             </div>
             <div class="field">
               <label for="wName">Name</label>
@@ -301,8 +302,13 @@
     <!-- Wifi Records -->
     <section class="view" id="view-wifirecords">
       <div class="hero">
-        <h1>Wifi Voucher Records</h1>
+        <h1>WIFI VOUCHERS SY 2027-2028 - Records</h1>
         <p>Complete record of wifi voucher assignments.</p>
+      </div>
+      <div class="toolbar" style="margin-bottom:12px;">
+        <div class="search-box">
+          <input type="text" id="wifiSearch" placeholder="Search ID number..." />
+        </div>
       </div>
       <div id="wifiRecordsList"></div>
     </section>

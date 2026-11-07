@@ -606,16 +606,21 @@ $('#wDept')?.addEventListener('change', populateWifiCourses);
 
 function renderWifi(){
   const container=$('#wifiRecordsList') || $('#wifiList'); if(!container) return;
-  const list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const q = ($('#wifiSearch')?.value || '').trim().toLowerCase();
+  let list=[...state.wifiVouchers].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  if(q) list=list.filter(v=>(v.idNo||'').toLowerCase().includes(q));
   if(list.length===0){ container.innerHTML='<p style="color:var(--text-muted);">No vouchers recorded.</p>'; return; }
-  let html='<table style="width:100%;border-collapse:collapse;"><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Course</th><th>Date</th><th></th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>ID No.</th><th>Name</th><th>Voucher Code</th><th>Department</th><th>Course</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>';
   list.forEach(v=>{
+    const active = isVoucherActive(v);
     html+=`<tr>
       <td>${escapeHtml(v.idNo)}</td>
       <td>${escapeHtml(v.name)}</td>
       <td>${escapeHtml(v.voucher)}</td>
+      <td>${escapeHtml(v.dept||'')}</td>
       <td>${escapeHtml(v.course)}</td>
       <td>${formatDate(v.date)}</td>
+      <td style="color:${active?'#1a7f37':'#cf222e'};font-weight:600;">${active?'ACTIVE':'EXPIRED'}</td>
       <td><button class="btn ghost small" data-wdel="${v.id}">Delete</button></td>
     </tr>`;
   });
@@ -627,6 +632,27 @@ function renderWifi(){
     renderWifi();
   }));
 }
+$('#wifiSearch')?.addEventListener('input', renderWifi);
+function isVoucherActive(v){
+  if(!v.date) return false;
+  const diff = (Date.now() - new Date(v.date).getTime()) / (1000*60*60*24);
+  return diff <= 150;
+}
+function activeVoucherForId(idNo){
+  return state.wifiVouchers.find(v=>v.idNo===idNo && isVoucherActive(v));
+}
+$('#wIdNo')?.addEventListener('input', ()=>{
+  const idNo = $('#wIdNo').value.trim();
+  const msg = $('#wIdMsg');
+  if(!msg) return;
+  const existing = idNo ? activeVoucherForId(idNo) : null;
+  if(existing){
+    msg.textContent = 'This ID number still has an active voucher (expires ' + new Date(new Date(existing.date).getTime()+150*24*60*60*1000).toLocaleDateString() + ').';
+    msg.style.color = '#cf222e';
+  } else {
+    msg.textContent = '';
+  }
+});
 $('#wifiForm')?.addEventListener('submit', (e)=>{
   e.preventDefault();
   const v={
@@ -634,13 +660,22 @@ $('#wifiForm')?.addEventListener('submit', (e)=>{
     idNo: $('#wIdNo').value.trim(),
     name: $('#wName').value.trim(),
     voucher: $('#wVoucher').value.trim(),
+    dept: $('#wDept').value,
     course: $('#wCourse').value,
     date: $('#wDate').value,
   };
   if(!v.idNo||!v.name||!v.voucher||!v.course||!v.date){ toast('Fill all fields'); return; }
+  const existing = activeVoucherForId(v.idNo);
+  if(existing){
+    const msg=$('#wIdMsg');
+    if(msg){ msg.textContent='This ID number still has an active voucher. New voucher cannot be added until it expires.'; msg.style.color='#cf222e'; }
+    toast('Active voucher exists for this ID');
+    return;
+  }
   state.wifiVouchers.unshift(v);
   localStorage.setItem('wifi_vouchers', JSON.stringify(state.wifiVouchers));
   $('#wifiForm').reset();
+  const msg=$('#wIdMsg'); if(msg) msg.textContent='';
   toast('Voucher saved');
   renderWifi();
 });
