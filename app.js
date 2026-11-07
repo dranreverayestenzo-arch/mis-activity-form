@@ -707,7 +707,7 @@ function renderSchoolYearRecords(){
 
 function viewSchoolYear(idx){
   const rec = state.schoolYearRecords[idx]; if(!rec) return;
-  const url = window.location.href.split('?')[0] + '#archive=' + encodeURIComponent(rec.schoolYear);
+  const url = window.location.href.split(/[?#]/)[0] + '#archive=' + encodeURIComponent(rec.schoolYear);
   window.open(url, '_blank');
 }
 
@@ -728,7 +728,7 @@ $('#newSchoolYearBtn')?.addEventListener('click', ()=>{
 });
 
 function updateWifiTitles(){
-  const sy = state.archiveView || state.currentSchoolYear;
+  const sy = (state.archiveView || state.currentSchoolYear).split('#')[0];
   document.querySelectorAll('#view-wifi .hero h1, #view-wifirecords .hero h1').forEach(h=>{
     if(h.textContent.includes('WIFI VOUCHERS')) h.textContent = 'WIFI VOUCHERS SY ' + sy + (h.textContent.includes('Records') ? ' - Records' : '');
   });
